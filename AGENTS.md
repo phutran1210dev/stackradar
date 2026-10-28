@@ -86,9 +86,9 @@ Data flows one way:
 
 ## Releases
 
-- The macOS universal tarball is built by hand with `lipo` from the `aarch64` and `x86_64` targets.
-- Publishing a release triggers `release-windows.yml` and `release-linux.yml`, which upload the
-  other builds.
+- Publishing a release triggers `release-macos.yml`, `release-windows.yml` and `release-linux.yml`,
+  which build and upload every asset. The macOS one is a universal tarball merged with `lipo` from
+  the `aarch64` and `x86_64` targets. Each workflow can also be run by hand for an existing tag.
 - `stackradar update` and `action.yml` download assets by name.
 - `stackradar update` refuses an archive that doesn't match its versioned
   `stackradar-<tag>-<platform>.sha256` asset. Every asset, the macOS one included, needs that file.
