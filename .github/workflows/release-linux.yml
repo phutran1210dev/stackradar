@@ -1,0 +1,45 @@
+name: Release (Linux)
+
+# Adds Linux builds to a release, for `stackradar update` and the GitHub Action.
+# Built on Ubuntu 22.04 so the binary runs on older glibc too.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and upload to (e.g. v1.0.0)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            arch: x86_64
+          - runner: ubuntu-22.04-arm
+            arch: arm64
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release --locked
+      - name: Package and upload
+        run: |
+          name="stackradar-linux-${{ matrix.arch }}"
+          tar -czf "$name.tar.gz" -C target/release stackradar
+          versioned="stackradar-$TAG-linux-${{ matrix.arch }}.tar.gz"
+          cp "$name.tar.gz" "$versioned"
+          sha256sum "$versioned" > "$versioned.sha256"
+          gh release upload "$TAG" "$name.tar.gz" "$versioned" "$versioned.sha256" --clobber

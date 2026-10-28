@@ -1,0 +1,98 @@
+name: Stack Radar audit
+description: Check your dependencies (and what they pull in) for known vulnerabilities and malware, and report them to code scanning.
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  path:
+    description: Folders to check, separated by spaces (each searched up to 3 levels deep)
+    default: .
+  fail-on:
+    description: Lowest severity that fails the job (critical, high, medium, low, any, never)
+    default: high
+  ignore:
+    description: An ignore/baseline file (see `stackradar audit --write-baseline`)
+    default: ""
+  args:
+    description: Extra arguments for `stackradar audit`, e.g. --ignore-dev
+    default: ""
+  sarif:
+    description: Where to write the SARIF report
+    default: stackradar.sarif
+  upload-sarif:
+    description: "Upload the SARIF report to GitHub code scanning (needs `security-events: write`)"
+    default: "true"
+  version:
+    description: Release to use, e.g. v1.0.0
+    default: latest
+  token:
+    description: Token for the GitHub Advisory Database (raises the rate limit)
+    default: ${{ github.token }}
+
+outputs:
+  exit-code:
+    description: "0 = nothing at or above fail-on, 1 = vulnerabilities found, 2 = error or incomplete check"
+    value: ${{ steps.audit.outputs.exit-code }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install stackradar
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        case "${RUNNER_OS}-${RUNNER_ARCH}" in
+          Linux-X64) asset=stackradar-linux-x86_64.tar.gz ;;
+          Linux-ARM64) asset=stackradar-linux-arm64.tar.gz ;;
+          macOS-*) asset=stackradar-macos-universal.tar.gz ;;
+          Windows-X64) asset=stackradar-windows-x86_64.zip ;;
+          Windows-ARM64) asset=stackradar-windows-arm64.zip ;;
+          *) echo "::error::No stackradar build for ${RUNNER_OS}-${RUNNER_ARCH}"; exit 1 ;;
+        esac
+        if [ "$VERSION" = latest ]; then
+          url="https://github.com/phutran1210dev/stackradar/releases/latest/download/$asset"
+        else
+          url="https://github.com/phutran1210dev/stackradar/releases/download/$VERSION/$asset"
+        fi
+        dir="$RUNNER_TEMP/stackradar"
+        mkdir -p "$dir"
+        curl -fsSL "$url" -o "$dir/$asset"
+        # Git Bash's tar (on Windows runners) can't read zips.
+        case "$asset" in
+          *.zip) unzip -oq "$dir/$asset" -d "$dir" ;;
+          *) tar -xzf "$dir/$asset" -C "$dir" ;;
+        esac
+        echo "$dir" >> "$GITHUB_PATH"
+    - name: Audit
+      id: audit
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        AUDIT_PATHS: ${{ inputs.path }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        IGNORE_FILE: ${{ inputs.ignore }}
+        EXTRA_ARGS: ${{ inputs.args }}
+        SARIF: ${{ inputs.sarif }}
+      run: |
+        read -ra paths <<< "$AUDIT_PATHS"
+        read -ra extra <<< "$EXTRA_ARGS"
+        ignore=()
+        if [ -n "$IGNORE_FILE" ]; then ignore=(--ignore "$IGNORE_FILE"); fi
+        set +e
+        stackradar audit "${paths[@]}" --fail-on "$FAIL_ON" --sarif "$SARIF" "${ignore[@]}" "${extra[@]}"
+        code=$?
+        set -e
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+    - name: Upload to code scanning
+      if: ${{ always() && inputs.upload-sarif == 'true' && hashFiles(inputs.sarif) != '' }}
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: ${{ inputs.sarif }}
+        category: stackradar
+    - name: Verdict
+      shell: bash
+      env:
+        CODE: ${{ steps.audit.outputs.exit-code }}
+      run: exit "${CODE:-2}"

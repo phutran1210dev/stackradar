@@ -1,0 +1,47 @@
+name: Release (Windows)
+
+# Adds Windows builds to a release. The macOS build is still made by hand.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and upload to (e.g. v1.0.0)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            arch: x86_64
+          - target: aarch64-pc-windows-msvc
+            arch: arm64
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Package and upload
+        shell: pwsh
+        run: |
+          $name = "stackradar-windows-${{ matrix.arch }}"
+          Compress-Archive -Path "target/${{ matrix.target }}/release/stackradar.exe" -DestinationPath "$name.zip"
+          Copy-Item "$name.zip" "stackradar-$env:TAG-windows-${{ matrix.arch }}.zip"
+          $zip = "stackradar-$env:TAG-windows-${{ matrix.arch }}.zip"
+          "$((Get-FileHash $zip -Algorithm SHA256).Hash.ToLower())  $zip" | Out-File -Encoding ascii -NoNewline "$zip.sha256"
+          gh release upload $env:TAG "$name.zip" $zip "$zip.sha256" --clobber

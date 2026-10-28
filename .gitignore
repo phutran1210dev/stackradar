@@ -1,0 +1,7 @@
+/target
+trending.html
+
+# Agent skills (installed locally via `npx skills`)
+.agents/
+.claude/
+skills-lock.json

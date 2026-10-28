@@ -1,0 +1,50 @@
+name: Feature request
+description: Suggest a new feature or an improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what makes it hard today?
+      placeholder: "I use Bun, and bun.lock projects are not checked for vulnerabilities."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How should it work? A command, a config key, a new tab or column...
+      placeholder: "Read exact versions from bun.lock, like yarn.lock and pnpm-lock.yaml."
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Ranking / buzz score
+        - New data source
+        - For you tab
+        - Watching tab
+        - Vulnerabilities (new ecosystem / lockfile)
+        - HTML report (UI)
+        - Terminal / Markdown / JSON output
+        - Notifications / webhook
+        - Config / schedule
+        - Install / platform support
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Workarounds you use now, or other tools that already do this.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd like to open a pull request for this

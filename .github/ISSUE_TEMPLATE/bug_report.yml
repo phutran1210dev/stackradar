@@ -1,0 +1,85 @@
+name: Bug report
+description: Something in Stack Radar is broken or gives a wrong result
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please remove tokens, webhook URLs and private paths from anything you paste.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What went wrong, and what did you expect instead?
+      placeholder: "The Vulnerabilities tab shows lodash 4.17.21 as affected, but the advisory is fixed in 4.17.21."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The exact command you ran and anything needed to see the problem.
+      placeholder: |
+        1. stackradar --open -d 7
+        2. Open the Vulnerabilities tab
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Ranking / buzz score
+        - For you tab
+        - Watching tab
+        - Vulnerabilities tab
+        - HTML report (UI)
+        - Terminal / Markdown / JSON output
+        - Notifications / webhook
+        - Config / schedule
+        - Install / build
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `stackradar --version`
+      placeholder: stackradar 0.2.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: token
+    attributes:
+      label: GitHub token
+      description: Many checks behave differently without a token.
+      options:
+        - Yes (GITHUB_TOKEN or gh auth login)
+        - No
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Terminal output / screenshots
+      description: Warnings or errors from the run, or a screenshot of the report.
+      render: shell
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: Relevant config.toml lines, lockfile type (npm / yarn / pnpm / Cargo / poetry / uv / go), etc.

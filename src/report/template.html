@@ -1,0 +1,1256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stack Radar</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%23111318%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%229.5%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%222%22 opacity=%22.45%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%224.5%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%222%22/%3E%3Ccircle cx=%2222.5%22 cy=%229.5%22 r=%222.6%22 fill=%22%236c9cf0%22/%3E%3C/svg%3E">
+<script>
+// Before first paint, so a chosen theme never flashes. Storage can fail; then the system theme applies.
+try { const t = localStorage.getItem("stackradar:theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+</script>
+<style>
+/* =====================================================================
+   Stack Radar design system v3: "Field ledger"
+   Achromatic chrome, one data hue, severity as pale pairs with a solid dot.
+   Layers: 1 scales, 2 roles (light / dark), 3 base, 4 components. Pages use roles only.
+   ===================================================================== */
+
+/* ---------- 1. Scales ---------- */
+:root {
+  /* Slate: cool neutrals, from theme-factory "Modern Minimalist" (charcoal #36454f, slate #708090) moved to 4.5:1 */
+  --slate-0: #ffffff; --slate-25: #f6f7f9; --slate-50: #f2f4f7; --slate-100: #eceef2; --slate-150: #e4e7ec;
+  --slate-200: #d6dae1; --slate-300: #8b93a1; --slate-400: #6b7280; --slate-500: #545b68; --slate-700: #2b303a;
+  --slate-900: #111318; --slate-950: #0b0d12;
+  /* Neutral darks: true greys, never navy */
+  --dark-0: #0a0a0a; --dark-1: #141414; --dark-2: #1c1c1c; --dark-3: #262626; --dark-4: #2e2e2e; --dark-5: #6b6b6b;
+  --dark-6: #949494; --dark-7: #b4b4b4; --dark-8: #f5f5f5;
+  /* Ledger blue: the one data hue (dealt by design-taste-frontend achromatic-ledger) */
+  --blue-500: #1d5fbf; --blue-300: #6c9cf0; --blue-50: #e8f0fc; --blue-900: #142338;
+  /* Severity: solid dots (marks) and pale pairs (pills) */
+  --rose-600: #be123c; --rose-400: #fb7185; --rose-50: #ffe4e6; --rose-900: #881337; --rose-950: #3b1219; --rose-200: #fda4af;
+  --orange-600: #ea580c; --orange-400: #fb923c; --orange-50: #ffedd5; --orange-900: #7c2d12; --orange-950: #3a1d0c; --orange-200: #fdba74;
+  --amber-600: #ca8a04; --amber-400: #facc15; --amber-50: #fef3c7; --amber-900: #713f12; --amber-950: #36290a; --amber-200: #fcd34d;
+}
+
+/* ---------- 2a. Roles: light ---------- */
+:root, .t-light {
+  color-scheme: light;
+  --ground: var(--slate-50);       /* blue-grey ledger paper: the product's face */
+  --surface: var(--slate-0);
+  --raised: var(--slate-25);       /* wells, hover */
+  --active: var(--slate-100);      /* selected nav pill, pressed */
+  --border: var(--slate-150);      /* card edges */
+  --rule: var(--slate-100);        /* row rules */
+  --control: var(--slate-300);     /* control borders, 3.1:1 */
+  --text: var(--slate-950);        /* 17.6:1 on ground */
+  --muted: var(--slate-500);       /* 6.2:1 on ground, 6.8:1 on surface */
+  --faint: var(--slate-400);       /* surfaces only: 4.8:1 on surface, 4.5:1 on raised */
+  --primary: var(--slate-900); --on-primary: #ffffff;
+  --hue: var(--blue-500); --hue-soft: var(--blue-50);    /* buzz, trends: the main data element */
+  --negative: #c4242a; --positive: #247b50;
+  --notice-bg: #fffbeb; --notice-border: #fde68a; --notice-ink: #92400e;
+  --sev-dot-critical: var(--rose-600); --sev-dot-high: var(--orange-600); --sev-dot-medium: var(--amber-600); --sev-dot-low: var(--slate-400);
+  --sev-bg-critical: var(--rose-50); --sev-ink-critical: var(--rose-900);
+  --sev-bg-high: var(--orange-50); --sev-ink-high: var(--orange-900);
+  --sev-bg-medium: var(--amber-50); --sev-ink-medium: var(--amber-900);
+  --sev-bg-low: var(--slate-100); --sev-ink-low: var(--slate-700);
+  --sev-bg-malware: var(--slate-900); --sev-ink-malware: #ffffff;
+  --float: 0 8px 24px rgba(17, 19, 24, .14), 0 1px 3px rgba(17, 19, 24, .08);
+}
+
+/* ---------- 2b. Roles: dark (true neutral) ---------- */
+:root[data-theme="dark"], .t-dark {
+  color-scheme: dark;
+  --ground: var(--dark-0); --surface: var(--dark-1); --raised: var(--dark-2); --active: var(--dark-3);
+  --border: var(--dark-3); --rule: #1f1f1f; --control: var(--dark-5);
+  --text: var(--dark-8); --muted: var(--dark-7); --faint: var(--dark-6);
+  --primary: var(--dark-8); --on-primary: var(--dark-0);
+  --hue: var(--blue-300); --hue-soft: var(--blue-900);
+  --negative: #f0686f; --positive: #3fc07a;
+  --notice-bg: #2a2108; --notice-border: #5c4a12; --notice-ink: var(--amber-200);
+  --sev-dot-critical: var(--rose-400); --sev-dot-high: var(--orange-400); --sev-dot-medium: var(--amber-400); --sev-dot-low: var(--dark-6);
+  --sev-bg-critical: var(--rose-950); --sev-ink-critical: var(--rose-200);
+  --sev-bg-high: var(--orange-950); --sev-ink-high: var(--orange-200);
+  --sev-bg-medium: var(--amber-950); --sev-ink-medium: var(--amber-200);
+  --sev-bg-low: var(--dark-3); --sev-ink-low: #d4d4d4;
+  --sev-bg-malware: var(--dark-8); --sev-ink-malware: var(--dark-0);
+  --float: 0 12px 32px rgba(0, 0, 0, .6), 0 0 0 1px var(--dark-4);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: var(--dark-0); --surface: var(--dark-1); --raised: var(--dark-2); --active: var(--dark-3);
+    --border: var(--dark-3); --rule: #1f1f1f; --control: var(--dark-5);
+    --text: var(--dark-8); --muted: var(--dark-7); --faint: var(--dark-6);
+    --primary: var(--dark-8); --on-primary: var(--dark-0);
+    --hue: var(--blue-300); --hue-soft: var(--blue-900);
+    --negative: #f0686f; --positive: #3fc07a;
+    --notice-bg: #2a2108; --notice-border: #5c4a12; --notice-ink: var(--amber-200);
+    --sev-dot-critical: var(--rose-400); --sev-dot-high: var(--orange-400); --sev-dot-medium: var(--amber-400); --sev-dot-low: var(--dark-6);
+    --sev-bg-critical: var(--rose-950); --sev-ink-critical: var(--rose-200);
+    --sev-bg-high: var(--orange-950); --sev-ink-high: var(--orange-200);
+    --sev-bg-medium: var(--amber-950); --sev-ink-medium: var(--amber-200);
+    --sev-bg-low: var(--dark-3); --sev-ink-low: #d4d4d4;
+    --sev-bg-malware: var(--dark-8); --sev-ink-malware: var(--dark-0);
+    --float: 0 12px 32px rgba(0, 0, 0, .6), 0 0 0 1px var(--dark-4);
+  }
+}
+
+/* ---------- 2c. Type, space, shape, motion ---------- */
+:root {
+  --font: "Geist", system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+  /* Five sizes: 12 / 14 / 16 / 24 / 30 */
+  --fs-small: 13px; --lh-small: 18px;  --fs-micro: 12px;
+  --fs-body: 14px;  --lh-body: 20px;
+  --fs-section: 16px; --lh-section: 24px;
+  --fs-title: 24px; --lh-title: 30px;
+  --fs-figure: 30px; --lh-figure: 36px;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px; --s12: 48px; --s16: 64px;
+  --gap: 16px;                     /* the one gutter, both directions */
+  --pad: 20px;                     /* card padding */
+  --radius-card: 8px; --radius-control: 6px; --radius-chip: 4px; --radius-pill: 999px;
+  --control-h: 32px; --row-min: 44px; --bar-h: 48px;
+  --col: 1120px;                   /* 752 + 16 + 352 = 1120 */
+  --rail: 352px;
+  --t-fast: 120ms; --t-state: 200ms; --t-leave: 240ms; --ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+/* ---------- 3. Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--ground); color: var(--text); font: var(--fs-body)/var(--lh-body) var(--font); font-variant-numeric: tabular-nums; }
+a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+button, input, select { font: inherit; color: inherit; }
+code, kbd, .mono { font-family: var(--mono); font-size: 13px; }
+.num { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid var(--hue); outline-offset: 2px; border-radius: 4px; }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.icon.sm { width: 14px; height: 14px; }
+
+/* ---------- 4. Viewer bar ---------- */
+.bar { height: var(--bar-h); border-bottom: 1px solid var(--border); background: var(--ground); }
+.bar-in { max-width: calc(var(--col) + 2 * var(--s6)); height: 100%; margin: 0 auto; padding: 0 var(--s6); display: flex; align-items: center; gap: var(--s4); }
+.mark { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; white-space: nowrap; }
+.mark svg { width: 22px; height: 22px; }
+.scope { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.scope::before { content: "/"; margin-right: var(--s4); color: var(--control); }
+.bar .spacer { flex: 1; }
+.stamp { color: var(--muted); white-space: nowrap; }
+.switch { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--radius-control); border: 1px solid var(--border); }
+.switch button { border: 0; background: none; height: 26px; width: 30px; border-radius: 4px; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+.switch button:hover { color: var(--text); }
+.switch button[aria-pressed="true"] { background: var(--active); color: var(--text); }
+@media (max-width: 759px) { .bar-in { padding: 0 var(--s4); } .stamp, .scope { display: none; } }
+
+/* ---------- 5. Canvas and title row ---------- */
+.canvas { max-width: calc(var(--col) + 2 * var(--s6)); margin: 0 auto; padding: var(--s8) var(--s6) var(--s16); }
+@media (max-width: 759px) { .canvas { padding: var(--s5) var(--s4) var(--s12); } }
+.title-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--s4) var(--s8); }
+.title-row .head { flex: 1 1 520px; min-width: 0; display: grid; gap: var(--s2); }
+h1.verdict { margin: 0; font-size: var(--fs-title); line-height: var(--lh-title); font-weight: 600; letter-spacing: -.01em; max-width: 46ch; text-wrap: balance; }
+h1.verdict .keep { white-space: nowrap; }
+.subline { margin: 0; color: var(--muted); max-width: 80ch; }
+.title-row .actions { display: flex; gap: var(--s2); flex: none; }
+@media (max-width: 759px) { h1.verdict { font-size: 20px; line-height: 26px; } .title-row .actions, .title-row .actions .btn { width: 100%; } .title-row .actions .btn { justify-content: center; } }
+
+/* ---------- 6. Buttons ---------- */
+.btn { display: inline-flex; align-items: center; gap: var(--s2); height: var(--control-h); padding: 0 var(--s3); border-radius: var(--radius-control);
+  border: 1px solid var(--control); background: var(--surface); color: var(--text); cursor: pointer; font-weight: 500; white-space: nowrap; text-decoration: none; }
+.btn:hover { background: var(--raised); }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.btn.primary:hover { opacity: .88; }
+.btn.done .icon { color: var(--positive); }
+.btn.primary.done .icon { color: inherit; }
+.ghost { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 var(--s2); border: 0; border-radius: var(--radius-control);
+  background: none; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.ghost:hover { background: var(--raised); color: var(--text); }
+.ghost[aria-pressed="true"] { color: var(--text); }
+.ghost.save[aria-pressed="true"] .icon { fill: currentColor; }
+
+/* ---------- 7. Notice (stale, partial, section note) ---------- */
+.notice { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: var(--s2); padding: 9px var(--s3); border-radius: var(--radius-control);
+  background: var(--notice-bg); border: 1px solid var(--notice-border); color: var(--notice-ink); font-size: var(--fs-small); line-height: var(--lh-small); }
+.notice .icon { width: 14px; height: 14px; margin-top: 1px; }
+.notice p { margin: 0; }
+.notice b { font-weight: 600; }
+.notice code { font-size: 12px; }
+.notice details summary { cursor: pointer; font-weight: 600; }
+.notice ul { margin: var(--s1) 0 0; padding-left: 16px; }
+.notices { display: grid; gap: var(--s2); }
+
+/* ---------- 8. Summary strip (KPIs as type, one divided container) ---------- */
+.strip { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); margin-top: var(--s6); background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-card); }
+.cell { padding: var(--s4) var(--pad); display: grid; gap: var(--s1); align-content: start; min-width: 0; }
+.cell + .cell { border-left: 1px solid var(--border); }
+.cell .label { color: var(--muted); font-size: var(--fs-small); line-height: var(--lh-small); }
+.cell .value { font-size: var(--fs-figure); line-height: var(--lh-figure); font-weight: 500; letter-spacing: -.01em; }
+.cell .value small { font-size: var(--fs-body); color: var(--faint); font-weight: 400; margin-left: 4px; letter-spacing: 0; }
+.cell .note { color: var(--muted); font-size: var(--fs-small); line-height: var(--lh-small); }
+.cell .note.bad { color: var(--negative); }
+.cell .counts { margin-top: var(--s1); }
+@media (max-width: 759px) {
+  .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cell + .cell { border-left: 0; }
+  .cell:nth-child(even) { border-left: 1px solid var(--border); }
+  .cell:nth-child(n+3) { border-top: 1px solid var(--border); }
+  .cell:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .cell .value { font-size: 24px; line-height: 30px; }
+}
+
+/* ---------- 9. Tabs ---------- */
+.tabs { display: flex; gap: var(--s5); margin-top: var(--s8); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+.tab { position: relative; border: 0; background: none; padding: 10px 0 12px; cursor: pointer; color: var(--muted); white-space: nowrap; font-weight: 500; display: inline-flex; gap: 6px; align-items: center; }
+.tab:hover { color: var(--text); }
+.tab[aria-selected="true"] { color: var(--text); }
+.tab[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--text); }
+.tab .n { color: var(--faint); font-weight: 400; font-variant-numeric: tabular-nums; }
+.tab .dot { width: 6px; height: 6px; border-radius: 50%; }
+.tab-sep { flex: none; width: 1px; margin: 12px 0; background: var(--border); }
+
+/* ---------- 10. Layout below the tabs ---------- */
+.work { display: grid; gap: var(--gap); margin-top: var(--gap); align-items: start; }
+.work > * { min-width: 0; }
+@media (min-width: 1100px) { .work.with-rail { grid-template-columns: minmax(0, 1fr) var(--rail); } }
+
+/* ---------- 11. Card ---------- */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); min-width: 0; }
+.card-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); padding: var(--s4) var(--pad) var(--s3); }
+.card-head h2 { margin: 0; font-size: var(--fs-section); line-height: var(--lh-section); font-weight: 600; margin-right: auto; }
+.card-head .count { color: var(--faint); font-weight: 400; margin-left: 6px; font-variant-numeric: tabular-nums; }
+.card-sub { margin: calc(var(--s2) * -1) var(--pad) var(--s3); color: var(--muted); font-size: var(--fs-small); line-height: var(--lh-small); }
+.card-foot { padding: var(--s3) var(--pad); border-top: 1px solid var(--rule); color: var(--muted); font-size: var(--fs-small); }
+.rail { display: grid; gap: var(--gap); }
+@media (min-width: 1100px) { .rail { position: sticky; top: var(--s4); } }
+
+/* ---------- 12. Filters ---------- */
+.filters { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; padding: 0 var(--pad) var(--s3); }
+.search { position: relative; flex: 1 1 220px; max-width: 320px; }
+.search input { width: 100%; height: var(--control-h); padding: 0 34px 0 32px; border: 1px solid var(--control); border-radius: var(--radius-control); background: var(--surface); }
+.search input::placeholder { color: var(--faint); }
+.search .icon { position: absolute; left: 10px; top: 8px; color: var(--faint); }
+.search kbd { position: absolute; right: 8px; top: 7px; font-size: 11px; line-height: 16px; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; color: var(--faint); }
+.select { position: relative; }
+.select select { appearance: none; height: var(--control-h); padding: 0 28px 0 10px; border: 1px solid var(--control); border-radius: var(--radius-control); background: var(--surface); cursor: pointer; }
+.select .icon { position: absolute; right: 8px; top: 9px; pointer-events: none; color: var(--faint); width: 14px; height: 14px; }
+.seg { display: inline-flex; padding: 2px; gap: 2px; border-radius: var(--radius-control); background: var(--active); }
+.seg button { border: 1px solid transparent; background: none; height: 28px; padding: 0 10px; border-radius: 4px; color: var(--muted); cursor: pointer; font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); border-color: var(--border); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 var(--pad) var(--s3); }
+.chip { height: 26px; padding: 0 10px; border-radius: var(--radius-pill); border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; font-size: var(--fs-small); }
+.chip:hover { color: var(--text); border-color: var(--control); }
+.chip[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--surface); }
+.filters .result { margin-left: auto; color: var(--faint); font-size: var(--fs-small); font-variant-numeric: tabular-nums; }
+@media (max-width: 759px) { .search { max-width: none; flex-basis: 100%; } .filters .select, .filters .seg { flex: 1 1 auto; } .filters .select select { width: 100%; } .seg button { flex: 1; } .search kbd { display: none; } }
+
+/* ---------- 13. Group header inside a list ---------- */
+.group { display: flex; align-items: baseline; gap: var(--s2); padding: var(--s4) var(--pad) var(--s2); border-top: 1px solid var(--rule); }
+.group:first-child { border-top: 0; padding-top: var(--s1); }
+.group h3 { margin: 0; font-size: var(--fs-body); font-weight: 600; }
+.group .n { color: var(--faint); font-variant-numeric: tabular-nums; }
+.group p { margin: 0; color: var(--muted); font-size: var(--fs-small); }
+
+/* ---------- 14. Severity pill, count cells, flags ---------- */
+.sev { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: var(--radius-pill); font-size: var(--fs-small); font-weight: 500;
+  white-space: nowrap; flex: none; background: var(--sev-bg-low); color: var(--sev-ink-low); }
+.sev::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--sev-dot-low); }
+.sev.critical { background: var(--sev-bg-critical); color: var(--sev-ink-critical); } .sev.critical::before { background: var(--sev-dot-critical); }
+.sev.high { background: var(--sev-bg-high); color: var(--sev-ink-high); } .sev.high::before { background: var(--sev-dot-high); }
+.sev.medium { background: var(--sev-bg-medium); color: var(--sev-ink-medium); } .sev.medium::before { background: var(--sev-dot-medium); }
+.sev.unknown { background: var(--raised); color: var(--muted); } .sev.unknown::before { background: var(--faint); opacity: .5; }
+.sev.malware { background: var(--sev-bg-malware); color: var(--sev-ink-malware); } .sev.malware::before { display: none; }
+.sev .cvss { opacity: .8; font-variant-numeric: tabular-nums; }
+.counts { display: inline-flex; gap: 3px; }
+.cnt { display: inline-flex; align-items: center; justify-content: center; gap: 3px; min-width: 32px; height: 20px; padding: 0 5px; border-radius: var(--radius-chip);
+  font-size: var(--fs-micro); font-variant-numeric: tabular-nums; background: var(--sev-bg-low); color: var(--sev-ink-low); }
+.cnt b { font-weight: 600; }
+.cnt i { font-style: normal; opacity: .75; }
+.cnt.critical { background: var(--sev-bg-critical); color: var(--sev-ink-critical); }
+.cnt.high { background: var(--sev-bg-high); color: var(--sev-ink-high); }
+.cnt.medium { background: var(--sev-bg-medium); color: var(--sev-ink-medium); }
+.cnt.malware { background: var(--sev-bg-malware); color: var(--sev-ink-malware); }
+.cnt.zero { background: none; color: var(--faint); }
+.flag { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-small); white-space: nowrap; color: var(--muted); }
+.flag .icon { width: 13px; height: 13px; }
+.flag.bad { color: var(--negative); font-weight: 500; }
+.flag.new { color: var(--hue); font-weight: 500; }
+
+/* ---------- 15. Finding row (upgrade, advisory, unmaintained) ---------- */
+.rows { list-style: none; margin: 0; padding: 0; }
+.finding { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: var(--s1) var(--s4); padding: var(--s4) var(--pad); border-top: 1px solid var(--rule); }
+.group + .rows > .finding:first-child { border-top: 0; }
+.finding:hover { background: var(--raised); }
+.finding .sevcell { padding-top: 1px; display: grid; gap: 6px; align-content: start; justify-items: start; }
+.finding .body { min-width: 0; display: grid; gap: 6px; }
+.finding .line1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--s3); }
+.finding .pkg { font-weight: 600; font-size: var(--fs-section); overflow-wrap: anywhere; text-decoration: none; }
+a.pkg:hover { text-decoration: underline; }
+.ver { font-family: var(--mono); /* taste-skill-ignore: versions are literal code */ font-size: 13px; color: var(--muted); white-space: nowrap; }
+.ver .to { color: var(--text); font-weight: 600; }
+.ver .none { font-family: var(--font); color: var(--text); font-weight: 600; }
+.prov { margin: 0; color: var(--muted); }
+.prov code { color: var(--text); font-size: 12.5px; }
+.caveats { display: flex; flex-wrap: wrap; gap: 2px var(--s4); margin: 0; padding: 0; list-style: none; }
+.finding .end { display: flex; align-items: flex-start; gap: var(--s1); }
+.finding.leaving { animation: leave var(--t-leave) var(--ease) forwards; }
+.finding.flash { animation: flash 1.4s var(--ease); }
+@keyframes leave { to { opacity: 0; transform: translateX(8px); } }
+@keyframes flash { 0%, 40% { background: var(--hue-soft); } 100% { background: transparent; } }
+@media (max-width: 759px) {
+  .finding { grid-template-columns: minmax(0, 1fr) auto; padding: var(--s4); }
+  .finding .sevcell { grid-auto-flow: column; justify-content: start; align-items: center; }
+  .finding .body { grid-column: 1 / -1; grid-row: 2; }
+  .finding .end { grid-column: 2; grid-row: 1; }
+}
+
+/* ---------- 16. Command well ---------- */
+.cmd { display: flex; max-width: 600px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--raised); overflow: hidden; }
+.cmd code { flex: 1; min-width: 0; padding: 6px 10px; white-space: pre; overflow-x: auto; scrollbar-width: thin; line-height: 20px; }
+.cmd code::before { content: "$ "; color: var(--faint); user-select: none; }
+.cmd button { flex: none; border: 0; border-left: 1px solid var(--border); background: none; color: var(--muted); padding: 0 10px; min-width: 78px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; justify-content: center; font-size: var(--fs-small); }
+.cmd button:hover { color: var(--text); background: var(--active); }
+.cmd button.done { color: var(--positive); }
+
+/* ---------- 17. Disclosure + table ---------- */
+.more summary { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; color: var(--muted); list-style: none; width: fit-content; font-size: var(--fs-small); }
+.more summary::-webkit-details-marker { display: none; }
+.more summary:hover { color: var(--text); }
+.more summary .icon { width: 14px; height: 14px; transition: transform var(--t-fast) var(--ease); }
+.more[open] summary .icon { transform: rotate(90deg); }
+.more .body2 { margin-top: var(--s2); overflow-x: auto; }
+table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-small); line-height: var(--lh-small); }
+table.t th { text-align: left; font-weight: 400; color: var(--faint); padding: 0 var(--s3) 6px 0; white-space: nowrap; }
+table.t td { padding: 8px var(--s3) 8px 0; border-top: 1px solid var(--rule); vertical-align: top; color: var(--muted); }
+table.t td.id { font-family: var(--mono); /* taste-skill-ignore: advisory ids and paths */ white-space: nowrap; color: var(--text); }
+table.t td.n, table.t th.n { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; }
+table.t td.wide { min-width: 24ch; color: var(--text); }
+table.t td.nowrap { white-space: nowrap; }
+
+/* ---------- 18. Projects table (signature: severity count cells per project) ---------- */
+.ptable { width: 100%; border-collapse: collapse; }
+.ptable th { text-align: left; font-weight: 400; font-size: var(--fs-small); color: var(--faint); padding: 0 var(--pad) 6px; }
+.ptable th.n { text-align: right; }
+.ptable td { padding: 0 var(--pad); height: var(--row-min); border-top: 1px solid var(--rule); }
+.ptable td.n { text-align: right; }
+.ptable tr.pick { cursor: pointer; }
+.ptable tr.pick:hover td { background: var(--raised); }
+.ptable tr[aria-selected="true"] td { background: var(--active); }
+.ptable .pname { font-family: var(--mono); /* taste-skill-ignore: project folder names */ font-size: 13px; }
+.ptable button.pbtn { border: 0; background: none; padding: 0; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+
+/* ---------- 19. Repo row (leaderboard) ---------- */
+.repo { display: grid; grid-template-columns: 28px 32px minmax(0, 1fr) 120px 148px; gap: var(--s1) var(--s4); padding: var(--s4) var(--pad); border-top: 1px solid var(--rule); align-items: start; }
+.repo:hover { background: var(--raised); }
+.repo .rank { font-size: var(--fs-section); line-height: 32px; color: var(--faint); text-align: right; font-variant-numeric: tabular-nums; position: relative; }
+.repo.unseen .rank { color: var(--text); font-weight: 600; }
+.repo.unseen .rank::before { content: ""; position: absolute; right: calc(100% + 4px); /* in the row's padding, clear of any rank */ top: 13px; width: 6px; height: 6px; border-radius: 50%; background: var(--hue); }
+.initials { width: 32px; height: 32px; border-radius: var(--radius-control); display: grid; place-items: center; font-size: 12px; font-weight: 600;
+  background: hsl(var(--h) 40% 92%); color: hsl(var(--h) 35% 26%); }
+.t-dark .initials, :root[data-theme="dark"] .initials { background: hsl(var(--h) 22% 18%); color: hsl(var(--h) 40% 80%); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .initials { background: hsl(var(--h) 22% 18%); color: hsl(var(--h) 40% 80%); } }
+.t-light .initials { background: hsl(var(--h) 40% 92%); color: hsl(var(--h) 35% 26%); }
+.repo .main { min-width: 0; display: grid; gap: 4px; }
+.repo .name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s3); font-size: var(--fs-section); line-height: var(--lh-section); }
+.repo .name a { text-decoration: none; overflow-wrap: anywhere; }
+.repo .name a:hover { text-decoration: underline; }
+.repo .name .owner { color: var(--muted); }
+.repo .name b { font-weight: 600; }
+.repo .desc { margin: 0; color: var(--muted); max-width: 70ch; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.repo .desc.missing { color: var(--faint); font-style: italic; }
+.why { display: flex; flex-wrap: wrap; gap: 2px var(--s4); margin: 2px 0 0; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--text); }
+.why li { display: inline-flex; align-items: center; gap: 5px; }
+.why .icon { width: 13px; height: 13px; color: var(--muted); }
+.why a { text-decoration: none; } .why a:hover { text-decoration: underline; }
+.warns { display: grid; gap: 2px; margin: 4px 0 0; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--negative); }
+.warns li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 6px; }
+.warns .icon { width: 13px; height: 13px; margin-top: 2px; }
+.warns span { color: var(--muted); } .warns b { color: var(--negative); font-weight: 500; }
+.meta { display: flex; flex-wrap: wrap; gap: 2px var(--s4); margin: 2px 0 0; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--faint); }
+.meta .lang::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--lang, var(--faint)); }
+.buzz { display: grid; gap: 6px; padding-top: 4px; }
+.buzz .v { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2); }
+.buzz .v b { font-size: var(--fs-section); font-weight: 600; font-variant-numeric: tabular-nums; }
+.buzz .v span { font-size: var(--fs-small); color: var(--faint); }
+.meter { height: 4px; border-radius: 2px; background: var(--rule); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--hue); border-radius: 2px; }
+.buzz.cut .meter i { background: var(--faint); }
+.buzz.cut .v span { color: var(--negative); }
+.stars { display: grid; gap: 2px; justify-items: end; padding-top: 4px; text-align: right; }
+.stars b { font-size: var(--fs-section); font-weight: 600; font-variant-numeric: tabular-nums; }
+.stars .gain { font-size: var(--fs-small); color: var(--muted); font-variant-numeric: tabular-nums; }
+.stars .gain.up { color: var(--text); }
+.spark { display: block; overflow: visible; margin-top: 2px; }
+.spark .line { fill: none; stroke: var(--hue); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.spark .end { fill: var(--hue); stroke: var(--surface); stroke-width: 1.5; }
+.spark .base { stroke: var(--rule); stroke-width: 1; }
+.repo .acts { grid-column: 3 / -1; display: flex; gap: var(--s1); margin: 2px 0 -6px -8px; }
+.head-row { display: grid; grid-template-columns: 28px 32px minmax(0, 1fr) 120px 148px; gap: var(--s4); padding: 0 var(--pad) 6px; font-size: var(--fs-small); color: var(--faint); }
+.head-row .r { text-align: right; }
+@media (max-width: 899px) {
+  .repo { grid-template-columns: 28px 32px minmax(0, 1fr) 96px; }
+  .repo .buzz { display: none; }
+  .head-row { grid-template-columns: 28px 32px minmax(0, 1fr) 96px; }
+  .head-row .hb { display: none; }
+}
+@media (max-width: 559px) {
+  .repo { grid-template-columns: 28px minmax(0, 1fr) auto; padding: var(--s4); gap: var(--s1) var(--s3); }
+  .repo .initials { display: none; }
+  .repo .stars { padding-top: 0; }
+  .repo .acts { grid-column: 2 / -1; }
+  .head-row { display: none; }
+}
+
+/* ---------- 20. Empty state ---------- */
+.empty { margin: 0 var(--pad) var(--pad); padding: var(--s8) var(--s6); border: 1px dashed var(--control); border-radius: var(--radius-card); text-align: center; display: grid; gap: 6px; justify-items: center; }
+.empty .icon { width: 20px; height: 20px; color: var(--faint); }
+.empty h3 { margin: 0; font-size: var(--fs-section); font-weight: 600; }
+.empty p { margin: 0; color: var(--muted); max-width: 56ch; }
+
+/* ---------- 21. Toast, tooltip ---------- */
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50; display: flex; gap: var(--s4); align-items: center;
+  padding: 8px 8px 8px 14px; border-radius: var(--radius-card); background: var(--primary); color: var(--on-primary); box-shadow: var(--float); /* taste-skill-ignore: the toast floats */
+  animation: toast-in var(--t-state) var(--ease); max-width: calc(100vw - 32px); }
+.toast button { border: 0; border-radius: var(--radius-control); height: 28px; padding: 0 10px; background: rgba(127, 127, 127, .25); color: inherit; cursor: pointer; font-weight: 600; }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 6px); } }
+
+/* ---------- 22. Explainer ---------- */
+.explain { margin-top: var(--s10); display: grid; gap: var(--s3); color: var(--muted); }
+.explain h2 { margin: 0; font-size: var(--fs-section); font-weight: 600; color: var(--text); }
+.explain dl { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: var(--s2) var(--s6); margin: 0; max-width: 92ch; }
+.explain dt { color: var(--text); font-weight: 500; }
+.explain dd { margin: 0; }
+.explain .keys { margin: 0; font-size: var(--fs-small); color: var(--faint); }
+.explain kbd { font-family: var(--mono); font-size: 11px; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; }
+@media (max-width: 759px) { .explain dl { grid-template-columns: 1fr; gap: 0; } .explain dd { margin-bottom: var(--s3); } }
+
+/* ---------- 23. Guards ---------- */
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+@media (forced-colors: active) { .sev, .cnt, .meter i { border: 1px solid CanvasText; forced-color-adjust: none; } }
+@media print { .bar .switch, .filters, .chips, .ghost, .cmd button, .title-row .actions, .toast { display: none !important; } body { background: #fff; } }
+
+/* ---------- 24. Variants ---------- */
+/* Rail rows: severity on its own line, body full width */
+.rail .finding { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.rail .finding .sevcell { grid-auto-flow: column; justify-content: start; }
+.rail .finding .end { display: none; }
+/* Neutral notice for facts that need no action */
+.notice.info { background: var(--raised); border-color: var(--border); color: var(--muted); }
+.notice.info b { color: var(--text); }
+.counts { flex-wrap: wrap; }
+/* In the project table the name wraps, never the counts: one row per project */
+.ptable td.n { width: 1%; white-space: nowrap; } .ptable .counts { flex-wrap: nowrap; }
+.ptable .pname { overflow-wrap: anywhere; }
+.caveats .flag { white-space: normal; align-items: flex-start; }
+.caveats .flag .icon { margin-top: 2px; }
+@media (max-width: 759px) {
+  .group { flex-wrap: wrap; }
+  .group p { flex-basis: 100%; }
+}
+@media (max-width: 559px) {
+  .repo { grid-template-columns: 28px minmax(0, 1fr); }
+  .repo .stars { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 4px 10px; text-align: left; padding-top: 0; }
+  .repo .stars b { font-size: var(--fs-body); }
+  .repo .name a { overflow-wrap: normal; }
+  .repo .name b { overflow-wrap: anywhere; } /* a long name breaks rather than run off a phone */
+}
+
+/* ---------- 25. Overview (round 2): the finding and the signature side by side ---------- */
+.overview { display: grid; gap: var(--s6) var(--s10); align-items: start; }
+@media (min-width: 1100px) { .overview { grid-template-columns: minmax(0, 1fr) 440px; } }
+.overview .lead { display: grid; gap: var(--s3); min-width: 0; }
+.overview .lead .actions { display: flex; gap: var(--s2); margin-top: var(--s1); }
+.lede { margin: 0; font-size: var(--fs-section); line-height: var(--lh-section); max-width: 60ch; }
+.overview .strip { margin-top: var(--s3); }
+.overview .cell .value { font-size: var(--fs-title); line-height: var(--lh-title); }
+.side-card .card-head { padding-bottom: var(--s2); }
+.side-card .ptable td { height: 40px; }
+.top-list { list-style: none; margin: 0; padding: 0; }
+.top-list li { display: grid; grid-template-columns: 20px minmax(0, 1fr) 96px; gap: var(--s3); align-items: center; padding: 0 var(--pad); height: 44px; border-top: 1px solid var(--rule); }
+.top-list .r { color: var(--faint); text-align: right; }
+.top-list a { text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-list a:hover { text-decoration: underline; }
+@media (max-width: 759px) { .overview .lead .actions, .overview .lead .actions .btn { width: 100%; } .overview .lead .actions .btn { justify-content: center; } }
+
+/* ---------- 26. Finding row with a fix column (round 2): commands line up on one edge ---------- */
+@media (min-width: 1100px) {
+  .finding { grid-template-columns: 96px minmax(0, 1fr) 380px auto; }
+  .finding .fixcol { grid-column: 3; grid-row: 1; padding-top: 2px; min-width: 0; }
+  .finding .fixcol .cmd { max-width: none; }
+  .finding .end { grid-column: 4; }
+}
+@media (max-width: 1099px) { .finding .fixcol { grid-column: 2; } }
+@media (max-width: 759px) { .finding .fixcol { grid-column: 1 / -1; } }
+.fixcol .fixnote { margin: 0; color: var(--muted); font-size: var(--fs-small); line-height: var(--lh-small); padding: 7px 0; }
+.fixcol table.t td { padding-top: 6px; padding-bottom: 6px; }
+/* Round 2 refinements: the lead column ends level with the By project card */
+.notices { margin: 0 0 var(--s6); }
+@media (min-width: 1100px) {
+  .overview { align-items: stretch; }
+  .overview .lead { display: flex; flex-direction: column; gap: var(--s3); }
+  .overview .lead .actions { margin-bottom: var(--s3); }
+  .overview .strip { margin-top: auto; }
+}
+.overview .strip { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr); }
+.overview .strip[style*="--n:2"] { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+.overview .strip[style*="--n:1"] { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 759px) { .overview .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Round 3: a stronger lead, no stretched gap, a shorter side card */
+.overview h1.verdict { font-size: 30px; line-height: 36px; letter-spacing: -.015em; }
+.overview .lede { font-size: 17px; line-height: 26px; }
+@media (min-width: 1100px) { .overview { align-items: start; } .overview .strip { margin-top: var(--s2); } }
+@media (max-width: 759px) { .overview h1.verdict { font-size: 22px; line-height: 28px; } }
+.side-card .ptable thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@media (min-width: 1100px) { .finding { grid-template-columns: 96px minmax(0, 1fr) 400px auto; } }
+.overview .rail { position: static; }
+
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-flame" viewBox="0 0 16 16"><path d="M8 1.6c.6 2.4 3.6 3.7 3.6 7.1A3.6 3.6 0 0 1 4.4 8.7c0-1.6.8-2.6 1.6-3.3.1 1.2.7 2 1.4 2.3C7.8 5.8 7.3 3.6 8 1.6Z"/></symbol>
+  <symbol id="i-talk" viewBox="0 0 16 16"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 16 16"><path d="M2.5 2.5h5l6 6-5 5-6-6z"/><circle cx="5.5" cy="5.5" r=".8"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 16 16"><path d="M2 11.5 6 7.5l2.5 2.5L14 4.5M10 4.5h4v4"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 16 16"><path d="M3.5 14V2.5M3.5 3h8.5l-1.8 3 1.8 3H3.5"/></symbol>
+  <symbol id="i-box" viewBox="0 0 16 16"><path d="M2.5 5 8 2.5 13.5 5v6L8 13.5 2.5 11zM2.5 5 8 7.5 13.5 5M8 7.5v6"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 16 16"><path d="M8 2 14.5 13.5h-13z"/><path d="M8 6.5v3.2M8 11.6v.2"/></symbol>
+  <symbol id="i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v4M8 5v.2"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></symbol>
+  <symbol id="i-star" viewBox="0 0 16 16"><path d="m8 1.8 1.9 4 4.3.5-3.2 2.9.9 4.3L8 11.3l-3.9 2.2.9-4.3-3.2-2.9 4.3-.5z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 16 16"><path d="M4 6.5h6a3 3 0 0 1 0 6H6.5M4 6.5 6.5 4M4 6.5 6.5 9"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="m3 8.5 3.5 3.5L13 4.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 16 16"><path d="m6 3.5 4.5 4.5L6 12.5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 16 16"><path d="m3.5 6 4.5 4.5L12.5 6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3.5 3.5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 16 16"><path d="M8 1.5 13.5 3.5v4.2c0 3-2.3 5.3-5.5 6.8-3.2-1.5-5.5-3.8-5.5-6.8V3.5z"/><path d="m5.5 8 1.8 1.8 3.4-3.6"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 16 16"><path d="M2.5 3.5h11l-4.2 5v4l-2.6 1v-5z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 16 16"><path d="M13 9.8A5.5 5.5 0 0 1 6.2 3a5.5 5.5 0 1 0 6.8 6.8Z"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 2v12A6 6 0 0 0 8 2Z" fill="currentColor"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3 6v7h10V6M6.5 9h3"/></symbol>
+</svg>
+
+<header class="bar">
+  <div class="bar-in">
+    <span class="mark"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#111318"/><circle cx="16" cy="16" r="9.5" fill="none" stroke="#fff" stroke-width="2" opacity=".45"/><circle cx="16" cy="16" r="4.5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="22.5" cy="9.5" r="2.6" fill="#6c9cf0"/></svg>Stack Radar</span>
+    <span class="scope" id="scope"></span>
+    <span class="spacer"></span>
+    <span class="stamp" id="stamp">Generated __GENERATED__</span>
+    <span id="theme"></span>
+  </div>
+</header>
+<div class="canvas">
+  <noscript><p>__INTRO__. This report needs JavaScript; its data is embedded in this file.</p></noscript>
+  <div class="notices" id="notices"></div>
+  <section class="overview" aria-labelledby="verdict"><div class="lead" id="lead"></div><aside id="side"></aside></section>
+  <nav id="tabs" aria-label="Report sections"></nav>
+  <main id="panel" role="tabpanel" class="work"></main>
+  <section class="explain" id="explain" aria-label="How to read this report"></section>
+</div>
+
+<script>
+const REPORT = __DATA__;
+// =====================================================================
+// Stack Radar component library v3. Shared by the report and the style guide.
+// Data reaches the DOM only through textContent (`text:`) or setAttribute; markup is never built from strings.
+// =====================================================================
+
+function el(tag, props = {}, ...children) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (v == null || v === false) continue;
+    if (k === "text") n.textContent = v;
+    else if (k === "class") n.className = v;
+    else if (k.startsWith("on") && typeof v === "function") n[k] = v;
+    else if (k === "hidden" || k === "open") n[k] = !!v;
+    else n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of children.flat(Infinity)) if (c != null && c !== false) n.append(c);
+  return n;
+}
+const SVG_NS = "http://www.w3.org/2000/svg";
+function svg(tag, attrs = {}, ...children) {
+  const n = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v != null) n.setAttribute(k, v);
+  for (const c of children.flat(Infinity)) if (c != null && c !== false) n.append(c);
+  return n;
+}
+const icon = (name, cls = "icon") => svg("svg", { class: cls, "aria-hidden": "true", focusable: "false" }, svg("use", { href: "#i-" + name }));
+
+// ---------- Formatting ----------
+const fmtNum = new Intl.NumberFormat("en");
+const fmtCompact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+const fmtDay = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+const plural = (n, one, many) => `${fmtNum.format(n)} ${n === 1 ? one : many}`;
+const shortDate = (d) => (d ? fmtDay.format(new Date(d.length === 10 ? d + "T12:00:00Z" : d)) : "");
+function ago(iso) {
+  const d = Math.max(0, (Date.now() - new Date(iso)) / 864e5);
+  if (d < 1) return "today";
+  if (d < 2) return "yesterday";
+  if (d < 30) return Math.floor(d) + " days ago";
+  if (d < 60) return "1 month ago";
+  if (d < 365) return Math.floor(d / 30) + " months ago";
+  return Math.floor(d / 365) === 1 ? "1 year ago" : Math.floor(d / 365) + " years ago";
+}
+function hash(s) { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) / 4294967295; }
+/** "a, b and 3 more", with paths in <code>. */
+function joinList(items, max = 2) {
+  const shown = items.length > max + 1 ? [...items.slice(0, max), `${items.length - max} more`] : items;
+  const out = [];
+  shown.forEach((p, i) => { if (i) out.push(i === shown.length - 1 ? " and " : ", "); out.push(/^[~/.]/.test(p) ? el("code", { text: p }) : p); });
+  return out;
+}
+
+// ---------- Vocabulary ----------
+const SEVERITIES = ["malware", "critical", "high", "medium", "low", "unknown"];
+const SEV_RANK = { critical: 0, high: 1, medium: 2, low: 3, unknown: 4 };
+const SEV_NAME = { malware: "Malware", critical: "Critical", high: "High", medium: "Medium", low: "Low", unknown: "Unknown" };
+/** Only known names ever reach class names. */
+const sevOf = (x) => (x.malware ? "malware" : x.severity in SEV_RANK ? x.severity : "unknown");
+const ECOSYSTEMS = { npm: "npm", cargo: "Cargo", go: "Go", pip: "PyPI", composer: "Composer", rubygems: "RubyGems", pub: "Pub", nuget: "NuGet", maven: "Maven" };
+const ecoName = (e) => ECOSYSTEMS[e] ?? e;
+const LANG_COLORS = {
+  TypeScript: "#3178c6", JavaScript: "#f1e05a", Python: "#3572A5", Go: "#00ADD8", Rust: "#dea584", Java: "#b07219", Kotlin: "#A97BFF",
+  Swift: "#F05138", Dart: "#00B4AB", "C++": "#f34b7d", C: "#555555", "C#": "#178600", HTML: "#e34c26", CSS: "#663399", Vue: "#41b883",
+  Svelte: "#ff3e00", Shell: "#89e051", Ruby: "#701516", PHP: "#4F5D95", Astro: "#ff5a03", "Jupyter Notebook": "#DA5B0B",
+};
+
+// =====================================================================
+// Atoms
+// =====================================================================
+
+/** Severity pill: pale pair with a solid dot; malware is the one filled pill. */
+function sevPill(sev, cvss = null) {
+  return el("span", { class: "sev " + sev }, SEV_NAME[sev], cvss != null ? el("span", { class: "cvss", text: cvss.toFixed(1) }) : null);
+}
+/** Count cells (after Snyk's version table): critical, high, medium, low; zero is grey. Malware leads when present. */
+function countCells(counts) {
+  const cells = [];
+  if (counts.malware) cells.push(el("span", { class: "cnt malware", title: "Malware" }, el("b", { text: fmtNum.format(counts.malware) }), el("i", { text: "Mal" })));
+  for (const [k, letter] of [["critical", "C"], ["high", "H"], ["medium", "M"], ["low", "L"]]) {
+    const n = counts[k] ?? 0;
+    cells.push(el("span", { class: "cnt " + (n ? k : "zero"), title: SEV_NAME[k] }, el("b", { text: fmtNum.format(n) }), el("i", { text: letter, "aria-hidden": "true" })));
+  }
+  const words = [counts.malware ? `${counts.malware} malware` : null, ...["critical", "high", "medium", "low"].map((k) => `${counts[k] ?? 0} ${k}`)].filter(Boolean).join(", ");
+  return el("span", { class: "counts", role: "img", "aria-label": words }, cells);
+}
+function flag(kind, iconName, text, title) { return el("span", { class: "flag " + kind, title }, iconName ? icon(iconName) : null, text); }
+function btn(label, { primary = false, iconName, onClick, aria } = {}) {
+  return el("button", { type: "button", class: "btn" + (primary ? " primary" : ""), onclick: onClick, "aria-label": aria }, iconName ? icon(iconName) : null, label);
+}
+function ghost(iconName, label, { pressed = null, cls = "", aria, onClick } = {}) {
+  return el("button", { type: "button", class: "ghost " + cls, "aria-pressed": pressed == null ? null : String(pressed), "aria-label": aria, onclick: onClick }, icon(iconName, "icon sm"), label);
+}
+/** Initials tile, tinted by a hash of the owner: identity, never data. */
+function initials(owner) {
+  const letters = owner.replace(/[^a-z0-9]/gi, "").slice(0, 2) || "?";
+  return el("span", { class: "initials", "aria-hidden": "true", style: `--h:${Math.round(hash(owner) * 360)}`, text: letters[0].toUpperCase() + (letters[1] ?? "").toLowerCase() });
+}
+/** Copy-to-clipboard behaviour shared by the command well and the primary action. */
+function copyBehaviour(button, getText, idleNodes, doneLabel = "Copied") {
+  button.onclick = async () => {
+    try { await navigator.clipboard.writeText(getText()); button.classList.add("done"); button.replaceChildren(icon("check"), el("span", { text: doneLabel })); }
+    catch { button.replaceChildren(icon("copy"), el("span", { text: "Select it" })); }
+    setTimeout(() => { button.classList.remove("done"); button.replaceChildren(...idleNodes()); }, 1600);
+  };
+  return button;
+}
+function commandWell(cmd) {
+  const idle = () => [icon("copy", "icon sm"), el("span", { text: "Copy" })];
+  const b = el("button", { type: "button", "aria-label": "Copy command" }, idle());
+  return el("div", { class: "cmd" }, el("code", { text: cmd }), copyBehaviour(b, () => cmd, idle));
+}
+function disclosure(summary, body) { return el("details", { class: "more" }, el("summary", {}, icon("chev"), summary), el("div", { class: "body2" }, body)); }
+function dataTable(cols, rows, label) {
+  return el("table", { class: "t", "aria-label": label },
+    el("thead", {}, el("tr", {}, cols.map((c) => el("th", { scope: "col", class: c.cls?.includes("n") ? "n" : null, text: c.label })))),
+    el("tbody", {}, rows.map((r) => el("tr", {}, r.map((cell, i) => el("td", { class: cols[i].cls }, cell))))));
+}
+function emptyState(iconName, title, body) {
+  return el("div", { class: "empty" }, icon(iconName), el("h3", { text: title }), el("p", { text: body }));
+}
+function notice({ iconName = "info", title, body, items, collapsible = false, tone = "warn" }) {
+  const content = collapsible
+    ? el("details", {}, el("summary", { text: title }), el("ul", {}, items.map((t) => el("li", { text: t }))))
+    : el("p", {}, title ? el("b", { text: title + " " }) : null, body ?? []);
+  return el("div", { class: "notice" + (tone === "info" ? " info" : ""), role: "status" }, icon(iconName), content);
+}
+let toastTimer;
+function toast(message, actionLabel, onAction) {
+  document.querySelector(".toast")?.remove(); clearTimeout(toastTimer);
+  const t = el("div", { class: "toast", role: "status" }, el("span", { text: message }),
+    actionLabel ? el("button", { type: "button", text: actionLabel, onclick: () => { t.remove(); onAction(); } }) : null);
+  document.body.append(t); toastTimer = setTimeout(() => t.remove(), 6000);
+}
+function themeSwitch(current, onChange) {
+  return el("div", { class: "switch", role: "group", "aria-label": "Theme" },
+    [["auto", "Match the system", "auto"], ["light", "Light", "sun"], ["dark", "Dark", "moon"]].map(([v, label, ic]) =>
+      el("button", { type: "button", "aria-pressed": String(current === v), "aria-label": label, title: label, onclick: () => onChange(v) }, icon(ic, "icon sm"))));
+}
+
+// =====================================================================
+// Controls
+// =====================================================================
+function searchField(placeholder, value, onInput) {
+  const input = el("input", { id: "q", type: "search", placeholder, autocomplete: "off", "aria-keyshortcuts": "/", value });
+  input.oninput = (e) => onInput(e.target.value);
+  return el("label", { class: "search" }, el("span", { class: "sr", text: "Filter" }), icon("search", "icon sm"), input, el("kbd", { "aria-hidden": "true", text: "/" }));
+}
+function selectField(label, options, value, onChange) {
+  return el("label", { class: "select" }, el("span", { class: "sr", text: label }),
+    el("select", { onchange: (e) => onChange(e.target.value) }, options.map(([v, t]) => { const o = el("option", { value: v, text: t }); if (v === value) o.selected = true; return o; })), icon("down"));
+}
+function segmented(label, options, value, onChange) {
+  return el("div", { class: "seg", role: "group", "aria-label": label },
+    options.map(([v, t]) => el("button", { type: "button", "aria-pressed": String(v === value), onclick: () => onChange(v), text: t })));
+}
+function chipGroup(label, options, pressed, onToggle) {
+  return el("div", { class: "chips", role: "group", "aria-label": label },
+    options.map(([v, t]) => el("button", { type: "button", class: "chip", "aria-pressed": String(pressed.has(v)), onclick: () => onToggle(v), text: t })));
+}
+/** Underline tabs on a full-width rule; ARIA tabs with arrow keys. groups: [[{key,title,count,dot}]] */
+function tabBar(groups, selected, onSelect) {
+  const items = groups.flat();
+  const bar = el("div", { class: "tabs", role: "tablist", "aria-label": "Report sections" },
+    groups.map((g, gi) => [gi ? el("span", { class: "tab-sep", "aria-hidden": "true" }) : null,
+      g.map((t) => el("button", { type: "button", class: "tab", role: "tab", id: "tab-" + t.key, "aria-selected": String(t.key === selected), "aria-controls": "panel",
+        tabindex: t.key === selected ? "0" : "-1", onclick: () => onSelect(t.key) },
+        t.dot ? el("span", { class: "dot", style: `background:var(--sev-dot-${t.dot === "malware" ? "critical" : t.dot})`, "aria-hidden": "true" }) : null,
+        t.title, t.count != null ? el("span", { class: "n", text: fmtNum.format(t.count), "aria-label": t.countLabel }) : null))]));
+  bar.addEventListener("keydown", (e) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+    const i = items.findIndex((t) => t.key === selected);
+    const next = e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : (i + (e.key === "ArrowLeft" ? -1 : 1) + items.length) % items.length;
+    e.preventDefault(); onSelect(items[next].key); document.getElementById("tab-" + items[next].key)?.focus();
+  });
+  return bar;
+}
+
+// =====================================================================
+// Figures
+// =====================================================================
+/** Summary strip: KPIs as type in one divided container. cells: [{label, value, unit, note, bad, counts}] */
+function summaryStrip(cells) {
+  return el("div", { class: "strip", style: `--n:${cells.length}`, role: "list" }, cells.map((c) => el("div", { class: "cell", role: "listitem" },
+    el("span", { class: "label", text: c.label }),
+    el("span", { class: "value num" }, typeof c.value === "number" ? fmtNum.format(c.value) : c.value, c.unit ? el("small", { text: c.unit }) : null),
+    c.counts ? el("span", { class: "counts-wrap" }, countCells(c.counts)) : null,
+    c.note ? el("span", { class: "note" + (c.bad ? " bad" : ""), text: c.note }) : null)));
+}
+/** Buzz meter: one hue, relative to the tab's top repo; greyed when star warnings cut it. */
+function buzzMeter(buzz, max, cut) {
+  const pct = Math.max(2, Math.min(100, (buzz / Math.max(max, 1)) * 100));
+  return el("div", { class: "buzz" + (cut ? " cut" : "") },
+    el("div", { class: "v" }, el("b", { text: String(Math.round(buzz)) }), el("span", { text: cut ? "cut" : "buzz" })),
+    el("div", { class: "meter", role: "img", "aria-label": `Buzz ${Math.round(buzz)}, ${Math.round(pct)}% of the top repo in this tab${cut ? ", cut by star warnings" : ""}` }, el("i", { style: `width:${pct.toFixed(1)}%` })));
+}
+/** Sparkline: stars at earlier runs plus today, straight segments, an end dot. The gain is printed beside it. */
+function sparkline(trend, now, w = 96, h = 20) {
+  if (!trend?.length) return null;
+  const pts = [...trend, [0, now]], span = pts[0][0] || 1, ys = pts.map((p) => p[1]);
+  const lo = Math.min(...ys), hi = Math.max(...ys);
+  const xy = pts.map(([d, n]) => [((span - d) / span) * (w - 4) + 2, hi === lo ? h / 2 : h - 2 - ((n - lo) / (hi - lo)) * (h - 4)]);
+  const [ex, ey] = xy[xy.length - 1];
+  const label = `Stars over ${plural(span, "day", "days")}: ${pts.map((p) => fmtNum.format(p[1])).join(", ")}`;
+  return svg("svg", { class: "spark", width: w, height: h, viewBox: `0 0 ${w} ${h}`, role: "img", "aria-label": label },
+    svg("title", {}, label), svg("line", { class: "base", x1: 0, x2: w, y1: h - 0.5, y2: h - 0.5 }),
+    svg("path", { class: "line", d: xy.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("") }),
+    svg("circle", { class: "end", cx: ex.toFixed(1), cy: ey.toFixed(1), r: 3 }));
+}
+
+// =====================================================================
+// Rows
+// =====================================================================
+function advisoryTable(list) {
+  return dataTable([{ label: "Advisory", cls: "id" }, { label: "Severity" }, { label: "Summary", cls: "wide" }, { label: "Affects", cls: "id" }, { label: "Published", cls: "nowrap" }],
+    list.map(({ id, v }) => v
+      ? [el("a", { href: v.url, target: "_blank", rel: "noopener", text: v.id }), sevPill(sevOf(v), v.cvss),
+         el("span", {}, v.summary, v.cwes.length ? el("span", { style: "display:block;color:var(--faint)", text: v.cwes.map((c) => `${c.cwe_id} ${c.name}`).join("; ") }) : null),
+         v.vulnerable, shortDate(v.published)]
+      : [el("a", { href: `https://github.com/advisories/${id}`, target: "_blank", rel: "noopener", text: id }), "", "", "", ""]), "Advisories");
+}
+function sevCell(x, cvss) {
+  return el("div", { class: "sevcell" }, sevPill(sevOf(x), cvss),
+    x.exploited ? flag("bad", "flame", "Exploited", "In CISA's Known Exploited Vulnerabilities catalog") : null,
+    !x.exploited && x.epss >= 0.01 ? flag("", null, `EPSS ${Math.round(x.epss * 100)}%`, "Chance of exploitation in the next 30 days") : null);
+}
+/** Upgrade row. ctx: { advisoryOf, compared, dismissed, onDismiss, project } */
+function findingRow(f, ctx) {
+  // `via` is set for any transitive package, whatever its kind; "indirect" without it is Go's `// indirect`.
+  const how = f.via ? ["through ", el("code", { text: f.via }), f.kind === "dev" ? ", a dev dependency, in " : " in "]
+    : f.kind === "indirect" ? ["indirectly in "] : f.kind === "dev" ? ["as a dev dependency in "] : ["directly in "];
+  const caveats = [
+    f.malware && flag("bad", "alert", "Remove it, then rotate any secrets this machine or CI could read"),
+    f.breaking && flag("bad", "alert", "Crosses a major version: check the changelog"),
+    f.target && f.unfixed > 0 && flag("bad", "alert", `${plural(f.unfixed, "advisory has", "advisories have")} no fix yet`),
+    !f.exact && flag("", "info", "No lockfile: this is the lowest version the manifest allows"),
+    f.is_new && flag("new", null, ctx.compared ? `New since ${shortDate(ctx.compared)}` : "New"),
+  ].filter(Boolean);
+  const advs = f.advisories.map((id) => ({ id, v: ctx.advisoryOf(id) }));
+  const single = advs.length === 1 && advs[0].v;
+  return el("li", { class: "finding", "data-key": f.package },
+    sevCell(f),
+    el("div", { class: "body" },
+      el("div", { class: "line1" }, el("span", { class: "pkg", text: f.package }),
+        el("span", { class: "ver" }, (f.exact ? "" : "≥") + f.version, " → ",
+          f.malware ? el("span", { class: "none", text: "remove" }) : f.target ? el("span", { class: "to", text: f.target }) : el("span", { class: "none", text: "no fix yet" }))),
+      el("p", { class: "prov" }, `${ecoName(f.ecosystem)}, used `, ...how, ...joinList((ctx.project ? [ctx.project, ...f.projects.filter((p) => p !== ctx.project)] : f.projects).map(short)), "."),
+      caveats.length ? el("ul", { class: "caveats" }, caveats.map((c) => el("li", {}, c))) : null,
+      disclosure(single ? single.summary : plural(advs.length, "advisory", "advisories"), advisoryTable(advs))),
+    el("div", { class: "fixcol" }, f.command ? commandWell(f.command)
+      : el("p", { class: "fixnote", text: f.malware ? "Remove it by hand: no package manager command is known." : "No fixed version is published yet. Watch the advisory, or replace the package." })),
+    el("div", { class: "end" }, ghost(ctx.dismissed ? "undo" : "x", ctx.dismissed ? "Restore" : "Dismiss", { aria: (ctx.dismissed ? "Restore " : "Dismiss ") + f.package, onClick: ctx.onDismiss })));
+}
+/** Advisory row (the Advisories view). */
+function advisoryRow(v, ctx) {
+  const fix = v.malware ? el("span", { class: "none", text: "remove" }) : v.patched ? el("span", { class: "to", text: v.patched }) : el("span", { class: "none", text: "no fix yet" });
+  return el("li", { class: "finding", "data-key": v.id + ":" + v.package },
+    sevCell(v, v.cvss),
+    el("div", { class: "body" },
+      el("div", { class: "line1" }, el("a", { class: "pkg", href: v.url, target: "_blank", rel: "noopener", text: v.package }), el("span", { class: "ver" }, "fixed in ", fix)),
+      el("p", { class: "prov", style: "color:var(--text)", text: v.summary }),
+      el("p", { class: "prov" }, [ecoName(v.ecosystem), v.id, v.cve].filter(Boolean).join("  "), `. Affects ${v.vulnerable}. Published ${shortDate(v.published)}.`,
+        v.is_new ? el("span", { class: "flag new", style: "margin-left:8px", text: ctx.compared ? `New since ${shortDate(ctx.compared)}` : "New" }) : null),
+    ),
+    el("div", { class: "fixcol" }, dataTable([{ label: "Project", cls: "id" }, { label: "Version", cls: "id" }, { label: "How it's used" }],
+        v.uses.map((u) => [short(u.project), (u.exact ? "" : "≥") + u.version,
+          (u.kind === "dev" ? "Dev" : u.kind === "indirect" || u.via ? "Indirect" : "Direct") + (u.via ? `, through ${u.via}` : "") + (u.exact ? "" : ", no lockfile")]), "Projects using it")),
+    el("div", { class: "end" }, ghost(ctx.dismissed ? "undo" : "x", ctx.dismissed ? "Restore" : "Dismiss", { aria: (ctx.dismissed ? "Restore " : "Dismiss ") + v.id, onClick: ctx.onDismiss })));
+}
+function unmaintainedRow(d) {
+  return el("li", { class: "finding" },
+    el("div", { class: "sevcell" }, el("span", { class: "sev unknown", text: d.archived ? "Archived" : "Stale" })),
+    el("div", { class: "body" },
+      el("div", { class: "line1" }, el("a", { class: "pkg", href: "https://github.com/" + d.repo, target: "_blank", rel: "noopener", text: d.package }), el("span", { class: "ver", text: d.repo })),
+      el("p", { class: "prov" }, `${ecoName(d.ecosystem)}. `, d.archived ? "The repo is archived. " : `No commits since ${shortDate(d.pushed)} ${d.pushed.slice(0, 4)}. `, "Used in ", ...joinList(d.projects.map(short)), ".")),
+    el("div", { class: "fixcol" }, el("p", { class: "fixnote", text: "No advisory yet. Plan a replacement before the next one lands." })),
+    el("div", { class: "end" }));
+}
+/** Projects table: the signature element. rows: [{project, counts, total}] */
+function projectsTable(rows, selected, onPick) {
+  return el("table", { class: "ptable", "aria-label": "Open advisories by project" },
+    el("thead", {}, el("tr", {}, el("th", { scope: "col", text: "Project" }), el("th", { scope: "col", class: "n", text: "Open advisories" }))),
+    el("tbody", {}, rows.map((r) => el("tr", { class: "pick", "aria-selected": String(r.project === selected) },
+      el("td", {}, el("button", { type: "button", class: "pbtn pname", "aria-pressed": String(r.project === selected), onclick: () => onPick(r.project), text: short(r.project), title: r.project })),
+      el("td", { class: "n" }, countCells(r.counts))))));
+}
+function repoHeadRow() {
+  return el("div", { class: "head-row", "aria-hidden": "true" }, el("span", { class: "r", text: "#" }), el("span"), el("span", { text: "Repository" }),
+    el("span", { class: "hb", text: "Buzz" }), el("span", { class: "r", text: "Stars" }));
+}
+/** Repo row. ctx: { rank, maxBuzz, compared, unseen, saved, dismissed, onSave, onDismiss } */
+function repoRow(r, ctx) {
+  const [owner, name] = r.full_name.split("/");
+  const h = r.health, exe = h?.executables ?? [], c = r.star_check;
+  const why = [
+    r.trending_today != null && el("li", {}, icon("flame"), `Trending, +${fmtNum.format(r.trending_today)} stars today`),
+    r.hn && el("li", {}, icon("talk"), el("a", { href: r.hn.url, target: "_blank", rel: "noopener", text: `${fmtNum.format(r.hn.points)} points on Hacker News` })),
+    r.new_release && h?.release && el("li", {}, icon("tag"), `Released ${h.release[0]} ${ago(h.release[1])}`),
+  ].filter(Boolean);
+  const warns = [
+    r.suspicious_stars && c && ["flag", "Stars look bought.", ` ${c.ghosts} of ${c.sampled} recent stargazers are new accounts nobody follows; buzz is cut to 30%.`],
+    r.low_engagement && ["alert", "Low engagement.", " Many stars, almost no forks or issues; buzz is halved."],
+    exe.length > 0 && ["box", "Ships executables", ` (${exe.length > 4 ? `${exe.slice(0, 3).join(", ")} and ${exe.length - 3} more` : exe.join(", ")}). Read the code before running them.`],
+  ].filter(Boolean);
+  const lic = r.license?.spdx_id, total = h ? h.open_issues + h.closed_issues : 0;
+  const meta = el("ul", { class: "meta" },
+    r.language ? el("li", { class: "lang", style: LANG_COLORS[r.language] ? `--lang:${LANG_COLORS[r.language]}` : null, text: r.language }) : null,
+    el("li", { text: lic && lic !== "NOASSERTION" ? lic : lic ? "Custom license" : "No license" }),
+    el("li", { text: plural(r.forks_count, "fork", "forks") }),
+    total ? el("li", { text: `${Math.round((h.closed_issues / total) * 100)}% of ${plural(total, "issue", "issues")} closed` }) : null,
+    el("li", { title: r.created_at, text: "Created " + ago(r.created_at) }),
+    r.matched.length ? el("li", { text: "Matches " + r.matched.join(", ") }) : null);
+  const gain = r.stars_delta > 0 ? `+${r.stars_delta >= 1000 ? fmtCompact.format(r.stars_delta) : fmtNum.format(r.stars_delta)} since ${shortDate(ctx.compared)}` : `+${r.stars_per_day >= 100 ? Math.round(r.stars_per_day) : r.stars_per_day.toFixed(1)} a day`;
+  return el("li", { class: "repo" + (ctx.unseen ? " unseen" : ""), "data-key": r.full_name },
+    el("span", { class: "rank" }, el("span", { class: "sr", text: ctx.unseen ? "New to you. Rank " : "Rank " }), String(ctx.rank)),
+    initials(owner),
+    el("div", { class: "main" },
+      el("div", { class: "name" }, el("a", { href: r.html_url, target: "_blank", rel: "noopener" }, el("span", { class: "owner", text: owner + " / " }), el("b", { text: name })),
+        r.is_new ? flag("new", null, ctx.compared ? `New since ${shortDate(ctx.compared)}` : "New") : null),
+      r.description ? el("p", { class: "desc", text: r.description }) : el("p", { class: "desc missing", text: "No description" }),
+      why.length ? el("ul", { class: "why" }, why) : null,
+      warns.length ? el("ul", { class: "warns" }, warns.map(([ic, b, rest]) => el("li", {}, icon(ic), el("span", {}, el("b", { text: b }), rest)))) : null,
+      meta),
+    buzzMeter(r.buzz, ctx.maxBuzz, r.suspicious_stars || r.low_engagement),
+    el("div", { class: "stars" }, el("b", { text: fmtCompact.format(r.stargazers_count) }), el("span", { class: "gain" + (r.stars_delta > 0 ? " up" : ""), text: gain }),
+      sparkline(r.trend, r.stargazers_count)),
+    el("div", { class: "acts" },
+      ghost("star", ctx.saved ? "Saved" : "Save", { pressed: ctx.saved, cls: "save", aria: (ctx.saved ? "Unsave " : "Save ") + r.full_name, onClick: ctx.onSave }),
+      ghost(ctx.dismissed ? "undo" : "x", ctx.dismissed ? "Restore" : "Dismiss", { aria: (ctx.dismissed ? "Restore " : "Dismiss ") + r.full_name, onClick: ctx.onDismiss })));
+}
+
+/** Compact top list: rank, name, buzz meter. Side card for a report with no project scan. */
+function topRepos(rows, max) {
+  return el("ol", { class: "top-list" }, rows.map((r, i) => el("li", {}, el("span", { class: "r", text: String(i + 1) }),
+    el("a", { href: r.html_url, target: "_blank", rel: "noopener", text: r.full_name }), buzzMeter(r.buzz, max, r.suspicious_stars || r.low_engagement))));
+}
+
+// =====================================================================
+// The report, assembled only from components.js. Expects REPORT (model::Report JSON).
+// Screen question: "Is anything in my projects dangerous, and what do I run?"
+// =====================================================================
+const { compared_to: COMPARED, generated_at: GENERATED_AT, sections: DATA, vulnerabilities: VULNS, warnings: WARNINGS } = REPORT;
+const VULN_KEY = "vulns";
+/** `stackradar audit` has no repo window (`since`), and reads no config or schedule. */
+const AUDIT = REPORT.since == null;
+const IGNORE_SOURCE = AUDIT ? "the [[ignore]] rules of the --ignore file" : "[[ignore]] rules in your config";
+const $ = (id) => document.getElementById(id);
+const add = (parent, ...nodes) => parent.append(...nodes.flat().filter((n) => n != null && n !== false));
+const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---------- Per-browser state (storage can fail; then nothing persists) ----------
+function load(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } }
+function store(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
+const SAVED_KEY = "stackradar:saved", DISMISSED_KEY = "stackradar:dismissed", SEEN_KEY = "stackradar:seen", THEME_KEY = "stackradar:theme";
+const saved = new Set(load(SAVED_KEY) ?? load("gh-trending:saved") ?? []);
+const dismissed = new Set(load(DISMISSED_KEY) ?? []);
+const setAll = (set, key, names, on) => { for (const n of names) on ? set.add(n) : set.delete(n); store(key, [...set]); };
+const inReport = new Set(DATA.flatMap((s) => s.entries.map((e) => e.full_name)));
+const firstSeen = load(SEEN_KEY) ?? {};
+for (const name of inReport) firstSeen[name] ??= GENERATED_AT;
+for (const [name, at] of Object.entries(firstSeen)) if (!inReport.has(name) && Date.now() - new Date(at) > 90 * 864e5) delete firstSeen[name];
+store(SEEN_KEY, firstSeen);
+const isUnseen = (r) => firstSeen[r.full_name] === GENERATED_AT;
+
+// ---------- Derived data (every count below is computed from the rows) ----------
+const vulnKey = (v) => `${v.id}:${v.package}`;
+const fixKeys = (f) => f.advisories.map((id) => `${id}:${f.package}`);
+const fixDismissed = (f) => fixKeys(f).every((k) => dismissed.has(k));
+const openVulns = () => (VULNS?.items ?? []).filter((v) => !dismissed.has(vulnKey(v)));
+const openFixes = () => (VULNS?.fixes ?? []).filter((f) => !fixDismissed(f));
+const advisoryOf = (pkg) => (id) => VULNS.items.find((v) => v.id === id && v.package === pkg);
+const isUrgent = (f) => f.malware || f.exploited || SEV_RANK[f.severity] <= SEV_RANK.high;
+const uniqueRepos = () => { const m = new Map(); for (const s of DATA) for (const e of s.entries) if (!m.has(e.full_name)) m.set(e.full_name, e); return [...m.values()]; };
+function countBy(items) { const c = {}; for (const v of items) { const s = sevOf(v); c[s] = (c[s] ?? 0) + 1; } return c; }
+function savedSection() {
+  const m = new Map();
+  for (const s of DATA) for (const e of s.entries) if (saved.has(e.full_name) && !m.has(e.full_name)) m.set(e.full_name, e);
+  return { key: "saved", title: "Saved", topics: [], entries: [...m.values()] };
+}
+const sectionByKey = (k) => [...DATA, savedSection()].find((s) => s.key === k);
+
+const state = { tab: VULNS && (openFixes().some(isUrgent) || !DATA.length) ? VULN_KEY : DATA[0]?.key ?? VULN_KEY,
+  q: "", sort: "buzz", lang: "", signal: "", severity: "", group: "fix", topics: new Set(), project: "" };
+const vulnView = () => state.tab === VULN_KEY && VULNS != null;
+
+// ---------- Viewer bar ----------
+function applyTheme(t) {
+  if (t === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  try { t === "auto" ? localStorage.removeItem(THEME_KEY) : localStorage.setItem(THEME_KEY, t); } catch {}
+  $("theme").replaceChildren(themeSwitch(t, applyTheme));
+}
+function renderBar() {
+  $("scope").textContent = VULNS ? `${(VULNS.folders ?? []).join(", ") || "Your projects"}, ${plural(VULNS.projects, "project", "projects")}` : `Repos created since ${shortDate(REPORT.since)}`;
+  $("stamp").textContent = "Generated " + shortDate(GENERATED_AT) + ", " + REPORT.generated.slice(11);
+  applyTheme(document.documentElement.dataset.theme ?? "auto");
+}
+
+// ---------- Overview: the finding, its evidence, the one action, the summary, and the projects ----------
+const urgentCommands = (fixes) => fixes.filter((f) => f.command).map((f) => `# ${f.package}: ${f.malware ? "malware" : SEV_NAME[f.severity].toLowerCase()}, in ${f.projects.join(" and ")}\n${f.command}`).join("\n\n") + "\n";
+/** A project's path inside the one scanned folder ("~/code/app" → "app"); with several folders, the whole path. */
+function short(p) {
+  const folders = VULNS?.folders ?? [];
+  if (folders.length !== 1) return p;
+  const f = folders[0].replace(/[\\/]+$/, "");
+  return p.length > f.length + 1 && p.startsWith(f) && "\\/".includes(p[f.length]) ? p.slice(f.length + 1) : p;
+}
+function verdict() {
+  const fixes = openFixes(), urgent = fixes.filter(isUrgent);
+  const malware = urgent.filter((f) => f.malware), exploited = urgent.filter((f) => !f.malware && f.exploited);
+  const repos = uniqueRepos(), top = repos.length ? repos.reduce((a, b) => (b.buzz > a.buzz ? b : a)) : null;
+  const trending = repos.filter((r) => r.trending_today != null).length;
+  const disc = top ? `${top.full_name} leads ${plural(repos.length, "rising repo", "rising repos")} in your stack.` : null;
+  const rest = (n) => (n ? `, then apply ${plural(n, "more urgent upgrade", "more urgent upgrades")}` : "");
+  if (VULNS && malware.length) return { title: malware.length === 1 ? `${malware[0].package} is malware.` : `${malware.length} dependencies are malware.`, keep: malware[0].package,
+    lede: `Remove ${malware.length === 1 ? "it" : "them"} from ${joinWords(unique(malware.flatMap((f) => f.projects)).map(short))}${rest(urgent.length - malware.length)}.`, urgent, fixes };
+  if (VULNS && exploited.length) return { title: `Attackers are exploiting ${exploited.length === 1 ? exploited[0].package : plural(exploited.length, "of your dependencies", "of your dependencies")}.`, keep: exploited[0].package,
+    lede: `Upgrade ${exploited.length === 1 ? "it" : "them"} in ${joinWords(unique(exploited.flatMap((f) => f.projects)).map(short))}${rest(urgent.length - exploited.length)}.`, urgent, fixes };
+  if (VULNS && urgent.length) return { title: `${plural(urgent.length, "upgrade is", "upgrades are")} urgent.`, lede: `${urgent.length === 1 ? "It fixes" : "They fix"} high or critical vulnerabilities in ${plural(unique(urgent.flatMap((f) => f.projects)).length, "project", "projects")}.`, urgent, fixes };
+  if (VULNS && fixes.length) return { title: "Nothing urgent in your projects.", lede: [`${plural(fixes.length, "upgrade is", "upgrades are")} waiting, none of them high or critical.`, disc].filter(Boolean).join(" "), urgent, fixes };
+  if (VULNS) return { title: "No known vulnerabilities.", lede: disc ?? `Your ${plural(VULNS.projects, "project", "projects")} are clear.`, urgent, fixes };
+  if (top) return { title: `${top.full_name} leads your stack.`, keep: top.full_name, lede: `${plural(repos.length, "rising repo", "rising repos")}, ${fmtNum.format(trending)} on GitHub Trending today.`, urgent, fixes };
+  return { title: "Nothing to report yet.", lede: "No topics are configured and no projects were scanned.", urgent, fixes };
+}
+const unique = (a) => [...new Set(a)];
+const joinWords = (a) => (a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]);
+function renderOverview() {
+  const v = verdict();
+  const i = v.keep ? v.title.indexOf(v.keep) : -1;
+  const h1 = el("h1", { class: "verdict", id: "verdict" }, i < 0 ? v.title : [v.title.slice(0, i), el("span", { class: "keep", text: v.keep }), v.title.slice(i + v.keep.length)]);
+  const evidence = [VULNS ? `Checked ${plural(VULNS.packages, "dependency version", "dependency versions")} in ${plural(VULNS.projects, "project", "projects")} against ${VULNS.database}.`
+    : `Repos created since ${shortDate(REPORT.since)} plus today's GitHub Trending, ranked by buzz.`, COMPARED ? `Compared with the run on ${shortDate(COMPARED)}.` : null].filter(Boolean).join(" ");
+  const target = (v.urgent.length ? v.urgent : v.fixes).filter((f) => f.command);
+  let action = null;
+  if (target.length) {
+    const label = v.urgent.length ? `Copy ${plural(target.length, "urgent fix", "urgent fixes")}` : `Copy ${plural(target.length, "fix", "fixes")}`;
+    const idle = () => [icon("copy"), el("span", { text: label })];
+    action = copyBehaviour(el("button", { type: "button", class: "btn primary", title: "Copies each command under a comment naming its package and projects" }, idle()),
+      () => urgentCommands(v.urgent.length ? v.urgent : v.fixes), idle, "Copied to the clipboard");
+  }
+  $("lead").replaceChildren(h1, el("p", { class: "lede", text: v.lede }), el("p", { class: "subline", text: evidence }),
+    action ? el("div", { class: "actions" }, action) : "", stripNode());
+  // The side column holds the projects; when they are few, the top repos fill it so the two columns end level.
+  const cards = [sideNode()];
+  const nProj = VULNS ? projectRows().length : 0;
+  if (VULNS && DATA.length && nProj <= 4) cards.push(topCard(Math.max(3, 6 - nProj)));
+  $("side").replaceChildren(el("div", { class: "rail" }, cards.filter(Boolean)));
+}
+function stripNode() {
+  const cells = [];
+  if (VULNS) {
+    const items = openVulns(), fixes = openFixes(), fresh = items.filter((x) => x.is_new).length;
+    const breaking = fixes.filter((f) => f.breaking).length, nofix = fixes.filter((f) => !f.target && !f.malware).length;
+    cells.push({ label: "Open advisories", value: items.length, counts: items.length ? countBy(items) : null,
+      note: fresh ? `${fmtNum.format(fresh)} new since ${COMPARED ? shortDate(COMPARED) : "the last run"}` : items.length ? "None new" : "Nothing open", bad: fresh > 0 });
+    cells.push({ label: "Upgrades to apply", value: fixes.length,
+      note: [breaking && `${fmtNum.format(breaking)} may break`, nofix && `${fmtNum.format(nofix)} without a fix`].filter(Boolean).join(", ") || (fixes.length ? "All within a major version" : "Nothing to apply") });
+  }
+  if (DATA.length) {
+    const repos = uniqueRepos(), trending = repos.filter((r) => r.trending_today != null).length, fresh = repos.filter(isUnseen).length;
+    cells.push({ label: "Rising repos", value: repos.length, note: `${fmtNum.format(trending)} on GitHub Trending today` });
+    if (!VULNS) cells.push({ label: "New to you", value: fresh === repos.length ? "—" : fresh, note: fresh === repos.length ? "First report in this browser" : "Not in your earlier reports" });
+  }
+  return cells.length ? summaryStrip(cells) : null;
+}
+function sideNode() {
+  if (VULNS) {
+    const rows = projectRows();
+    const head = el("div", { class: "card-head" }, el("h2", { id: "proj-title" }, "By project", el("span", { class: "count", text: `${fmtNum.format(rows.length)} of ${fmtNum.format(VULNS.projects)}` })));
+    if (!rows.length) return el("section", { class: "card side-card", "aria-labelledby": "proj-title" }, head,
+      el("p", { class: "card-sub", text: `None of your ${plural(VULNS.projects, "project has", "projects have")} an open advisory.` }));
+    return el("section", { class: "card side-card", "aria-labelledby": "proj-title" }, head,
+      el("p", { class: "card-sub", text: "Worst first. Choose a project to see only its upgrades." }),
+      projectsTable(rows, state.project, (p) => { state.project = state.project === p ? "" : p; if (state.tab !== VULN_KEY) state.tab = VULN_KEY; state.group = "fix"; render(); $("tabs").scrollIntoView({ behavior: reduced() ? "auto" : "smooth" }); }),
+      rows.length < VULNS.projects ? el("div", { class: "card-foot", text: `${plural(VULNS.projects - rows.length, "other project has", "other projects have")} no open advisories.` }) : null);
+  }
+  return topCard(6);
+}
+function topCard(n) {
+  const top = uniqueRepos().sort((a, b) => b.buzz - a.buzz).slice(0, n);
+  if (!top.length) return null;
+  return el("section", { class: "card side-card", "aria-labelledby": "top-title" },
+    el("div", { class: "card-head" }, el("h2", { id: "top-title" }, "Most buzz", el("span", { class: "count", text: "across every tab" }))), topRepos(top, top[0].buzz));
+}
+
+function renderNotices() {
+  const out = [];
+  const age = (Date.now() - new Date(GENERATED_AT)) / 36e5;
+  if (age > 36) out.push(notice({ iconName: "clock", title: `This report is ${Math.floor(age / 24)} days old.`,
+    body: AUDIT ? ["Advisories published since then aren't in it. Run ", el("code", { text: "stackradar audit" }), " again for a current check."]
+      : ["Scheduled runs may have stopped. Run ", el("code", { text: "stackradar" }), ", or read ", el("code", { text: "~/.stackradar/run.log" }), "."] }));
+  if (WARNINGS.length) out.push(notice({ iconName: "alert", collapsible: true, title: `This report is partial: ${plural(WARNINGS.length, "check", "checks")} didn't complete.`, items: WARNINGS }));
+  $("notices").replaceChildren(...out);
+  $("notices").hidden = !out.length;
+}
+
+// ---------- Tabs ----------
+function tabGroups() {
+  const groups = [];
+  if (VULNS) {
+    const open = openVulns(), worst = SEVERITIES.find((s) => open.some((v) => sevOf(v) === s));
+    groups.push([{ key: VULN_KEY, title: "Vulnerabilities", count: open.length, countLabel: plural(open.length, "open advisory", "open advisories"), dot: worst && worst !== "unknown" ? worst : null }]);
+  }
+  if (DATA.length) groups.push([...DATA, savedSection()].map((s) => {
+    const n = s.entries.filter((e) => !dismissed.has(e.full_name)).length;
+    return { key: s.key, title: s.title, count: n, countLabel: plural(n, "repo", "repos") };
+  }));
+  return groups;
+}
+function go(key) {
+  if (key !== state.tab) Object.assign(state, { tab: key, q: "", lang: "", project: "", topics: new Set() });
+  render();
+}
+function renderTabs() {
+  const groups = tabGroups(), n = groups.flat().length;
+  $("tabs").replaceChildren(n > 1 ? tabBar(groups, state.tab, go) : "");
+}
+
+// ---------- Vulnerabilities ----------
+const BANDS = [
+  ["Remove now", "Malicious packages. Remove them rather than upgrade.", (x) => x.malware],
+  ["Exploited in the wild", "In CISA's catalog of vulnerabilities used in real attacks.", (x) => !x.malware && x.exploited],
+  ["Critical and high", null, (x) => !x.malware && !x.exploited && SEV_RANK[x.severity] <= SEV_RANK.high],
+  ["Medium", null, (x) => !x.malware && !x.exploited && x.severity === "medium"],
+  ["Low and unknown", null, (x) => !x.malware && !x.exploited && SEV_RANK[x.severity] >= SEV_RANK.low],
+];
+function dismissWithUndo(row, keys, label) {
+  const done = () => { setAll(dismissed, DISMISSED_KEY, keys, true); render(); toast(`Dismissed ${label}.`, "Undo", () => { setAll(dismissed, DISMISSED_KEY, keys, false); render(); }); };
+  if (!row || reduced()) return done();
+  row.classList.add("leaving"); setTimeout(done, 240);
+}
+function projectRows() {
+  const by = new Map();
+  for (const v of openVulns()) for (const p of new Set(v.uses.map((u) => u.project))) { if (!by.has(p)) by.set(p, []); by.get(p).push(v); }
+  const weight = (c) => (c.malware ?? 0) * 1e4 + (c.critical ?? 0) * 1e3 + (c.high ?? 0) * 100 + (c.medium ?? 0) * 10 + (c.low ?? 0);
+  return [...by].map(([project, list]) => ({ project, counts: countBy(list), total: list.length })).sort((a, b) => weight(b.counts) - weight(a.counts) || a.project.localeCompare(b.project));
+}
+function renderVulns(panel) {
+  const byFix = state.group === "fix", wantDismissed = state.severity === "dismissed", min = SEV_RANK[state.severity] ?? Infinity;
+  const q = state.q.toLowerCase(), has = (x) => x && x.toLowerCase().includes(q);
+  const pool = byFix ? VULNS.fixes.filter((f) => fixDismissed(f) === wantDismissed) : VULNS.items.filter((v) => dismissed.has(vulnKey(v)) === wantDismissed);
+  const projOf = (x) => (byFix ? x.projects : x.uses.map((u) => u.project));
+  const rows = pool.filter((x) => !state.topics.size || state.topics.has(x.ecosystem))
+    .filter((x) => !state.project || projOf(x).includes(state.project))
+    .filter((x) => wantDismissed || SEV_RANK[x.severity] <= min)
+    .filter((x) => !q || (byFix ? [x.package, x.command, ...x.projects, ...x.advisories, ...x.advisories.map((id) => advisoryOf(x.package)(id)?.summary)]
+      : [x.package, x.summary, x.id, x.cve, ...x.cwes.map((c) => c.cwe_id), ...x.uses.map((u) => u.project)]).some(has));
+  const unit = byFix ? ["upgrade", "upgrades"] : ["advisory", "advisories"];
+  const nothing = !VULNS.items.length;
+  const card = el("section", { class: "card", "aria-labelledby": "list-title" });
+  add(card, el("div", { class: "card-head" }, el("h2", { id: "list-title" }, byFix ? "Upgrades, most urgent first" : "Advisories", el("span", { class: "count", text: fmtNum.format(pool.length) }))));
+  if (!nothing) add(card,
+    el("div", { class: "filters" },
+      searchField("Package, CVE or project", state.q, (v) => { state.q = v; renderPanel(); }),
+      segmented("Show", [["fix", "Upgrades"], ["advisory", "Advisories"]], state.group, (v) => { state.group = v; render(); }),
+      selectField("Severity", [["", "Any severity"], ["critical", "Critical"], ["high", "High and above"], ["medium", "Medium and above"], ["dismissed", "Dismissed"]], state.severity, (v) => { state.severity = v; renderPanel(); }),
+      el("span", { class: "result", "aria-live": "polite", text: rows.length === pool.length ? plural(pool.length, ...unit) : `${fmtNum.format(rows.length)} of ${plural(pool.length, ...unit)}` })),
+    chipGroup("Ecosystem", [...new Set(VULNS.items.map((v) => v.ecosystem))].sort().map((e) => [e, ecoName(e)]), state.topics, (t) => { state.topics.has(t) ? state.topics.delete(t) : state.topics.add(t); renderPanel(); }),
+    state.project ? el("div", { class: "filters" }, el("span", { class: "flag", text: `Only ${state.project}` }), el("button", { type: "button", class: "ghost", onclick: () => { state.project = ""; renderPanel(); } }, icon("x", "icon sm"), "Show every project")) : null);
+  const rowFor = (x) => {
+    const keys = byFix ? fixKeys(x) : [vulnKey(x)], isDis = keys.every((k) => dismissed.has(k));
+    const ctx = { advisoryOf: advisoryOf(x.package), compared: COMPARED, dismissed: isDis, project: state.project,
+      onDismiss: () => isDis ? (setAll(dismissed, DISMISSED_KEY, keys, false), render()) : dismissWithUndo(row, keys, x.package) };
+    const row = byFix ? findingRow(x, ctx) : advisoryRow(x, ctx);
+    return row;
+  };
+  if (!rows.length) {
+    const [ic, t, b] = wantDismissed && !pool.length ? ["x", "Nothing dismissed", "Dismiss an upgrade once you've handled or accepted it. It waits here so you can restore it."]
+      : nothing && VULNS.ignored ? ["filter", "Nothing left after your ignore rules", `${plural(VULNS.ignored, "advisory matched", "advisories matched")} ${IGNORE_SOURCE}.`]
+      : nothing ? ["shield", `No known vulnerabilities in ${plural(VULNS.packages, "dependency version", "dependency versions")}`, `Checked ${plural(VULNS.projects, "project", "projects")} in ${(VULNS.folders ?? []).join(", ")} against ${VULNS.database}. The next run checks again.`]
+      : ["filter", "Nothing matches", "Clear the search or the filters to see every finding."];
+    add(card, emptyState(ic, t, b));
+  } else if (wantDismissed || state.severity || state.q || state.project || state.topics.size) {
+    add(card, el("ul", { class: "rows" }, rows.map(rowFor)));
+  } else {
+    const body = el("div", {});
+    for (const [title, sub, test] of BANDS) {
+      const band = rows.filter(test);
+      if (!band.length) continue;
+      add(body, el("div", { class: "group" }, el("h3", { text: title }), el("span", { class: "n", text: fmtNum.format(band.length) }), sub ? el("p", { text: sub }) : null),
+        el("ul", { class: "rows" }, band.map(rowFor)));
+    }
+    add(card, body);
+  }
+  const stale = wantDismissed || state.severity || state.project ? [] : (VULNS.unmaintained ?? []).filter((d) => !state.topics.size || state.topics.has(d.ecosystem)).filter((d) => !q || [d.package, d.repo, ...d.projects].some(has));
+  if (stale.length) add(card, el("div", { class: "group" }, el("h3", { text: "Unmaintained" }), el("span", { class: "n", text: fmtNum.format(stale.length) }), el("p", { text: "No advisories, but nobody will fix the next one." })),
+    el("ul", { class: "rows" }, stale.map(unmaintainedRow)));
+  if (VULNS.ignored) add(card, el("div", { class: "card-foot", text: `${plural(VULNS.ignored, "advisory is", "advisories are")} left out by ${IGNORE_SOURCE}.` }));
+  panel.className = "work";
+  add(panel, card);
+}
+
+// ---------- Repos ----------
+const sorters = {
+  buzz: (a, b) => b.buzz - a.buzz || b.stars_per_day - a.stars_per_day, spd: (a, b) => b.stars_per_day - a.stars_per_day,
+  gained: (a, b) => (b.stars_delta ?? -Infinity) - (a.stars_delta ?? -Infinity) || b.stars_per_day - a.stars_per_day,
+  stars: (a, b) => b.stargazers_count - a.stargazers_count, new: (a, b) => b.created_at.localeCompare(a.created_at),
+};
+const signalFilters = { "": () => true, trending: (r) => r.trending_today != null, hn: (r) => r.hn != null,
+  engaged: (r) => !r.low_engagement && !r.suspicious_stars, unseen: isUnseen, dismissed: () => true };
+const SECTION_COPY = { foryou: "Repos that match your projects' dependencies, ranked by buzz.", watch: "The repos you follow in your config, ranked by buzz.", saved: "Repos you saved in this browser, while they stay in the report." };
+function renderRepos(panel) {
+  const sec = sectionByKey(state.tab) ?? DATA[0], wantDismissed = state.signal === "dismissed";
+  const pool = sec.entries.filter((r) => dismissed.has(r.full_name) === wantDismissed);
+  const q = state.q.toLowerCase();
+  const langs = new Map(); for (const e of sec.entries) if (e.language) langs.set(e.language, (langs.get(e.language) ?? 0) + 1);
+  if (state.lang && !langs.has(state.lang)) state.lang = "";
+  const rows = pool.filter((r) => !state.topics.size || r.matched.some((t) => state.topics.has(t))).filter((r) => !state.lang || r.language === state.lang)
+    .filter(signalFilters[state.signal]).filter((r) => !q || [r.full_name, r.description, r.language, ...r.topics].some((v) => v && v.toLowerCase().includes(q))).sort(sorters[state.sort]);
+  const maxBuzz = Math.max(1, ...sec.entries.map((e) => e.buzz));
+  const card = el("section", { class: "card", "aria-labelledby": "list-title" },
+    el("div", { class: "card-head" }, el("h2", { id: "list-title" }, sec.title, el("span", { class: "count", text: fmtNum.format(pool.length) }))),
+    el("p", { class: "card-sub", text: SECTION_COPY[sec.key] ?? `Repos tagged ${sec.topics.join(", ")}, created since ${shortDate(REPORT.since)} or on GitHub Trending, ranked by buzz.` }));
+  if (sec.note) add(card, el("div", { style: "padding:0 var(--pad) var(--s3)" }, notice({ iconName: "alert", title: "Read the code before you run anything here.", body: sec.note })));
+  add(card, el("div", { class: "filters" },
+      searchField("Name, description or language", state.q, (v) => { state.q = v; renderPanel(); }),
+      selectField("Show", [["", "All repos"], ["trending", "On GitHub Trending"], ["hn", "On Hacker News"], ["engaged", "Without star warnings"], ["unseen", "New to you"], ["dismissed", "Dismissed"]], state.signal, (v) => { state.signal = v; renderPanel(); }),
+      selectField("Language", [["", "Any language"], ...[...langs].sort((a, b) => b[1] - a[1]).map(([l, n]) => [l, `${l} (${n})`])], state.lang, (v) => { state.lang = v; renderPanel(); }),
+      selectField("Sort", [["buzz", "Sort by buzz"], ["spd", "Stars a day"], ...(COMPARED ? [["gained", "Stars gained"]] : []), ["stars", "Total stars"], ["new", "Newest"]], state.sort, (v) => { state.sort = v; renderPanel(); }),
+      el("span", { class: "result", "aria-live": "polite", text: rows.length === pool.length ? plural(pool.length, "repo", "repos") : `${fmtNum.format(rows.length)} of ${plural(pool.length, "repo", "repos")}` })),
+    sec.topics.length ? chipGroup("Topic", sec.topics.map((t) => [t, t]), state.topics, (t) => { state.topics.has(t) ? state.topics.delete(t) : state.topics.add(t); renderPanel(); }) : null);
+  if (!rows.length) {
+    const [ic, t, b] = wantDismissed && !pool.length ? ["x", "Nothing dismissed", "Dismiss a repo to hide it from every tab. It waits here so you can restore it."]
+      : sec.key === "saved" && !pool.length ? ["star", "No saved repos yet", "Save a repo from any tab to keep it here while it stays in the report."]
+      : !pool.length ? ["trend", "No repos in this tab", "Nothing in these topics passed the star and age thresholds this run."]
+      : ["filter", "No repos match", "Clear the search or the filters to see all of them."];
+    add(card, emptyState(ic, t, b));
+  } else add(card, repoHeadRow(), el("ol", { class: "rows", "aria-label": `${sec.title}, ranked` }, rows.map((r, i) => {
+    const isSaved = saved.has(r.full_name), isDis = dismissed.has(r.full_name);
+    const row = repoRow(r, { rank: i + 1, maxBuzz, compared: COMPARED, unseen: isUnseen(r), saved: isSaved, dismissed: isDis,
+      onSave: () => { setAll(saved, SAVED_KEY, [r.full_name], !isSaved); render(); },
+      onDismiss: () => isDis ? (setAll(dismissed, DISMISSED_KEY, [r.full_name], false), render()) : dismissWithUndo(row, [r.full_name], r.full_name) });
+    return row;
+  })));
+  panel.className = "work";
+  add(panel, card);
+}
+
+// ---------- Explainer ----------
+function renderExplain() {
+  const items = vulnView() ? [
+    ["Upgrade", "The lowest version that fixes every advisory against the package. ≥ means no lockfile was found, so the version is the lowest the manifest allows."],
+    ["Exploited", "In CISA's Known Exploited Vulnerabilities catalog: attackers are using it."],
+    ["EPSS", "FIRST's estimate of the chance of exploitation in the next 30 days, shown from 1%."],
+    ["C H M L", "Open advisories by severity: critical, high, medium, low. Malware is counted first, in black."],
+    ["Source", `${VULNS.database}, matched against the versions in your lockfiles. Nothing from your projects was run.`],
+  ] : [
+    ["Buzz", "GitHub Trending today, plus recent Hacker News discussion, plus stars gained since the last run, plus stars a day. The bar compares a repo with the top repo in its tab."],
+    ["Star warnings", "Buzz is halved for low engagement and cut to 30% when stars look bought; the bar turns grey."],
+    ["Blue dot", "The first time this browser has seen the repo."],
+    ["Sources", "GitHub's search and GraphQL APIs, github.com/trending, and Hacker News through Algolia."],
+  ];
+  $("explain").replaceChildren(el("h2", { text: "How to read this report" }), el("dl", {}, items.map(([t, d]) => [el("dt", { text: t }), el("dd", { text: d })])),
+    el("p", { class: "keys" }, el("kbd", { text: "/" }), " search, ", el("kbd", { text: "Esc" }),
+      ...(DATA.length ? [" clear, ", el("kbd", { text: "←" }), " ", el("kbd", { text: "→" }), " switch tabs. Saved, dismissed and seen repos stay in this browser."]
+        : [" clear. Dismissed upgrades and advisories stay in this browser."])));
+}
+
+// ---------- URL hash ----------
+function saveHash() {
+  const p = new URLSearchParams({ tab: state.tab });
+  for (const [k, d] of [["sort", "buzz"], ["lang", ""], ["signal", ""], ["severity", ""], ["group", "fix"], ["q", ""], ["project", ""]]) if (state[k] !== d) p.set(k, state[k]);
+  if (state.topics.size) p.set("topics", [...state.topics].join(","));
+  history.replaceState(null, "", "#" + p);
+}
+function loadHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (tabGroups().flat().some((t) => t.key === p.get("tab"))) state.tab = p.get("tab");
+  if (sorters[p.get("sort")] && (p.get("sort") !== "gained" || COMPARED)) state.sort = p.get("sort");
+  if (signalFilters[p.get("signal")]) state.signal = p.get("signal");
+  if (["critical", "high", "medium", "dismissed"].includes(p.get("severity"))) state.severity = p.get("severity");
+  if (p.get("group") === "advisory") state.group = "advisory";
+  state.lang = p.get("lang") ?? ""; state.q = p.get("q") ?? ""; state.project = p.get("project") ?? "";
+  state.topics = new Set((p.get("topics") ?? "").split(",").filter(Boolean));
+}
+
+function renderPanel() {
+  const panel = $("panel"), focusQ = document.activeElement?.id === "q", caret = focusQ ? document.activeElement.selectionStart : 0;
+  panel.replaceChildren();
+  panel.setAttribute("aria-labelledby", "tab-" + state.tab);
+  vulnView() ? renderVulns(panel) : renderRepos(panel);
+  if (focusQ) { const q = $("q"); q.focus(); q.setSelectionRange(caret, caret); }
+  saveHash(); renderExplain();
+}
+function render() { renderOverview(); renderTabs(); renderPanel(); }
+
+document.addEventListener("keydown", (e) => {
+  const typing = e.target.closest?.("input, select, textarea");
+  if (e.key === "/" && !typing) { e.preventDefault(); $("q")?.focus(); }
+  else if (e.key === "Escape" && e.target.id === "q") { state.q = ""; renderPanel(); }
+});
+
+renderBar(); renderNotices();
+if (DATA.length || VULNS) { loadHash(); render(); }
+else { $("lead").replaceChildren(el("h1", { class: "verdict", text: "Nothing to report yet." }), el("p", { class: "lede", text: "No topics are configured and no projects were scanned. Run stackradar --init-config to start." })); }
+
+</script>
+
+</body>
+</html>

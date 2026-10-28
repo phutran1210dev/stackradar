@@ -1,0 +1,23 @@
+[package]
+name = "stackradar"
+version = "1.0.0"
+edition = "2024"
+license = "MIT"
+description = "Rising GitHub repos for your stack, and known vulnerabilities in your own dependencies"
+repository = "https://github.com/phutran1210dev/stackradar"
+
+[dependencies]
+# Already built in for TLS; also hashes `stackradar update` downloads.
+aws-lc-rs = { version = "1.18.2", default-features = false, features = ["aws-lc-sys"] }
+chrono = { version = "0.4.45", features = ["serde"] }
+clap = { version = "4.6.7", features = ["derive"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["blocking", "json", "rustls", "query"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+toml = "1.1.8"
+
+# Smaller, faster binary; the build is slower, which only matters for `cargo install`.
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
