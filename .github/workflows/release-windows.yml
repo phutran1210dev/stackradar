@@ -1,6 +1,6 @@
 name: Release (Windows)
 
-# Adds Windows builds to a release. The macOS build is still made by hand.
+# Adds Windows builds to a release.
 on:
   release:
     types: [published]
